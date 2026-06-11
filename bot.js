@@ -17,39 +17,35 @@ const TOKEN = process.env.DISCORD_TOKEN;
 const PORT = process.env.PORT || 3000;
 const DATA_FILE =
   process.env.DATA_FILE || path.join(__dirname, 'data', 'invite-data.json');
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_KEY ||
-  process.env.SUPABASE_ANON_KEY;
-const SUPABASE_TABLE = process.env.SUPABASE_TABLE || 'invite_bot_state';
+const INVITES_CHANNEL_ID = process.env.INVITES_CHANNEL_ID;
 const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || 0);
-const INVITES_CHANNEL_ID =
-  process.env.INVITES_CHANNEL_ID || '1514272950117863444';
-const SUPPORT_CHANNEL_ID =
-  process.env.SUPPORT_CHANNEL_ID || '1514272950117863444';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_TABLE = process.env.SUPABASE_TABLE || 'invite_bot_state';
 
 if (!TOKEN) {
-  console.error('Missing DISCORD_TOKEN in environment variables.');
+  console.error('DISCORD_TOKEN ontbreekt.');
   process.exit(1);
 }
 
-const inviteCache = new Map();
-const rewardMilestones = [3, 5, 10, 15, 25];
-
-const defaultData = { guilds: {} };
-let db = structuredClone(defaultData);
 const supabase =
   SUPABASE_URL && SUPABASE_KEY
     ? createClient(SUPABASE_URL, SUPABASE_KEY, {
         auth: { persistSession: false },
       })
     : null;
-const dataReady = loadData();
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildInvites,
+  ],
 });
+
+const inviteCache = new Map();
+const rewardMilestones = [3, 5, 10, 15, 25];
+const db = { guilds: {} };
 
 const commands = [
   new SlashCommandBuilder()
@@ -103,27 +99,28 @@ const commands = [
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   new SlashCommandBuilder()
     .setName('syncrewards')
-    .setDescription('Geef ingestelde reward-rollen aan leden die ze al behaald hebben.')
+    .setDescription('Geef reward-rollen aan leden die ze al behaald hebben.')
     .setDefaultMemberPermissions(
       PermissionFlagsBits.ManageGuild | PermissionFlagsBits.ManageRoles,
     ),
 ].map((command) => command.toJSON());
 
 startWebServer();
+const dataReady = loadData();
 
 client.once(Events.ClientReady, async () => {
   await dataReady;
-  console.log(`Logged in as ${client.user.tag}`);
+  console.log(`Ingelogd als ${client.user.tag}`);
 
   for (const guild of client.guilds.cache.values()) {
-    await registerGuildCommands(guild);
+    await registerCommands(guild);
     await refreshGuildInvites(guild);
   }
 });
 
 client.on(Events.GuildCreate, async (guild) => {
   await dataReady;
-  await registerGuildCommands(guild);
+  await registerCommands(guild);
   await refreshGuildInvites(guild);
 });
 
@@ -142,6 +139,7 @@ client.on(Events.InviteDelete, (invite) => {
 
 client.on(Events.GuildMemberAdd, async (member) => {
   await dataReady;
+
   const before = inviteCache.get(member.guild.id) || new Map();
   const after = await fetchGuildInvites(member.guild);
   const usedInvite = findUsedInvite(before, after);
@@ -150,7 +148,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
 
   if (!usedInvite || !usedInvite.inviterId) {
     console.log(
-      `[${member.guild.name}] Could not detect invite for ${member.user.tag}.`,
+      `[${member.guild.name}] Invite niet gevonden voor ${member.user.tag}.`,
     );
     return;
   }
@@ -204,98 +202,78 @@ process.on('unhandledRejection', (error) => {
 });
 
 function startWebServer() {
-  const indexFile = path.join(__dirname, 'index.html');
-
   const server = http.createServer((request, response) => {
-    if (request.url === '/health') {
-      const body = JSON.stringify({
-        ok: true,
-        bot: client.user ? client.user.tag : 'starting',
-        guilds: client.guilds.cache.size,
-        storage: supabase ? 'supabase' : 'local-json',
-      });
+    const body =
+      request.url === '/health'
+        ? JSON.stringify({
+            ok: true,
+            bot: client.user ? client.user.tag : 'starting',
+            guilds: client.guilds.cache.size,
+            storage: supabase ? 'supabase' : 'local-json',
+          })
+        : 'Utrecht Roleplay Invite Bot draait.';
 
-      response.writeHead(200, {
-        'content-type': 'application/json; charset=utf-8',
-      });
-      response.end(body);
-      return;
-    }
-
-    fs.readFile(indexFile, 'utf8', (error, html) => {
-      if (error) {
-        response.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
-        response.end('Utrecht Roleplay Invite Bot is online.');
-        return;
-      }
-
-      response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      response.end(html);
+    response.writeHead(200, {
+      'content-type':
+        request.url === '/health'
+          ? 'application/json; charset=utf-8'
+          : 'text/plain; charset=utf-8',
     });
+    response.end(body);
   });
 
   server.listen(PORT, () => {
-    console.log(`Web server listening on port ${PORT}`);
+    console.log(`Render webserver luistert op poort ${PORT}`);
   });
 }
 
 async function loadData() {
   if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from(SUPABASE_TABLE)
-        .select('guild_id, data');
+    const { data, error } = await supabase
+      .from(SUPABASE_TABLE)
+      .select('guild_id, data');
 
-      if (error) throw error;
-
-      db = structuredClone(defaultData);
-
-      for (const row of data || []) {
-        db.guilds[row.guild_id] = normalizeGuildData(row.data);
-      }
-
-      console.log(
-        `Loaded invite data from Supabase table "${SUPABASE_TABLE}".`,
-      );
+    if (error) {
+      console.error('Supabase laden mislukt, lokale backup wordt gebruikt:', error);
+      loadLocalData();
       return;
-    } catch (error) {
-      console.error(
-        'Could not load invite data from Supabase, falling back to local JSON:',
-        error.message,
-      );
     }
+
+    for (const row of data || []) {
+      db.guilds[row.guild_id] = normalizeGuildData(row.data);
+    }
+
+    console.log(`Invite data geladen uit Supabase: ${SUPABASE_TABLE}`);
+    return;
   }
 
+  loadLocalData();
+}
+
+function loadLocalData() {
   try {
-    db = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    console.log(`Loaded invite data from ${DATA_FILE}.`);
+    const localData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    db.guilds = localData.guilds || {};
+    console.log(`Invite data geladen uit ${DATA_FILE}`);
   } catch {
-    db = structuredClone(defaultData);
+    console.log('Geen lokale invite data gevonden, start met lege data.');
   }
 }
 
-async function saveData(guildId) {
-  if (supabase && guildId) {
-    const guildData = normalizeGuildData(db.guilds[guildId]);
+async function saveGuildData(guildId) {
+  if (supabase) {
+    const { error } = await supabase.from(SUPABASE_TABLE).upsert(
+      {
+        guild_id: guildId,
+        data: normalizeGuildData(db.guilds[guildId]),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'guild_id' },
+    );
 
-    try {
-      const { error } = await supabase.from(SUPABASE_TABLE).upsert(
-        {
-          guild_id: guildId,
-          data: guildData,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'guild_id' },
-      );
+    if (!error) return;
 
-      if (error) throw error;
-      return;
-    } catch (error) {
-      console.error(
-        'Could not save invite data to Supabase, writing local backup:',
-        error.message,
-      );
-    }
+    console.error('Supabase opslaan mislukt, lokale backup wordt gebruikt:', error);
   }
 
   fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
@@ -337,12 +315,12 @@ function getUserStats(guildId, userId) {
   return guildData.users[userId];
 }
 
-async function registerGuildCommands(guild) {
+async function registerCommands(guild) {
   try {
     await guild.commands.set(commands);
-    console.log(`[${guild.name}] Slash commands registered.`);
+    console.log(`[${guild.name}] Slash commands geregistreerd.`);
   } catch (error) {
-    console.error(`[${guild.name}] Could not register slash commands:`, error);
+    console.error(`[${guild.name}] Slash commands registreren mislukt:`, error);
   }
 }
 
@@ -359,7 +337,7 @@ async function fetchGuildInvites(guild) {
     );
   } catch (error) {
     console.error(
-      `[${guild.name}] Could not fetch invites. Give the bot Manage Server permission.`,
+      `[${guild.name}] Invites ophalen mislukt. Geef de bot Manage Server permissie.`,
       error.message,
     );
     return inviteCache.get(guild.id) || new Map();
@@ -423,10 +401,10 @@ async function recordJoin(member, invite) {
     accountCreatedAt: member.user.createdAt.toISOString(),
   };
 
-  await saveData(member.guild.id);
+  await saveGuildData(member.guild.id);
 
   console.log(
-    `[${member.guild.name}] ${member.user.tag} joined with invite ${invite.code} from ${invite.inviterId}. Valid: ${isValid}.`,
+    `[${member.guild.name}] ${member.user.tag} joined via ${invite.code} van ${invite.inviterId}. Geldig: ${isValid}.`,
   );
 
   return {
@@ -492,7 +470,10 @@ async function handleInvitesCommand(interaction) {
 
 async function handleInviteActieCommand(interaction) {
   const targetChannel =
-    interaction.options.getChannel('channel') || interaction.channel;
+    interaction.options.getChannel('channel') ||
+    (INVITES_CHANNEL_ID
+      ? await interaction.guild.channels.fetch(INVITES_CHANNEL_ID).catch(() => null)
+      : interaction.channel);
   const shouldPing = interaction.options.getBoolean('ping') ?? true;
 
   if (!targetChannel || !targetChannel.isTextBased()) {
@@ -535,11 +516,12 @@ async function handleInviteActieCommand(interaction) {
         '* Alle invites worden gecontroleerd door het staffteam.',
         '* Bij misbruik vervallen alle behaalde beloningen.',
         '',
-        `Je aantal invites kan je bekijken in <#${INVITES_CHANNEL_ID}> met:`,
+        INVITES_CHANNEL_ID
+          ? `Je aantal invites kan je bekijken in <#${INVITES_CHANNEL_ID}> met:`
+          : 'Je aantal invites kan je bekijken met:',
         '> /invites',
         '',
-        'Heb je een mijlpaal bereikt? Maak dan een **ticket** aan zodat een stafflid je beloning kan toekennen. Dit doe je via de support Discord, die je kan vinden in ' +
-          `<#${SUPPORT_CHANNEL_ID}>.`,
+        'Heb je een mijlpaal bereikt? Spreek een stafflid aan zodat je beloning gecontroleerd en toegekend kan worden.',
       ].join('\n'),
     )
     .setTimestamp();
@@ -582,7 +564,7 @@ async function handleSetRewardRoleCommand(interaction) {
 
   const guildData = ensureGuildData(interaction.guild.id);
   guildData.rewardRoles[String(milestone)] = role.id;
-  await saveData(interaction.guild.id);
+  await saveGuildData(interaction.guild.id);
 
   await interaction.reply({
     content: `Vanaf **${milestone} geldige invite(s)** krijgt iemand automatisch ${role}.`,
