@@ -599,10 +599,7 @@ const embed = new EmbedBuilder()
         { name: '\u200b', value: '\u200b', inline: true },
         { name: '**20 invites**', value: '**VIP Blackmarket**', inline: true },
         
-        // Spatie na de laatste rewards
-        { name: '\u200b', value: '\u200b', inline: false },
-        
-        // Lege regel tussen rewards en informatie
+        // Kleine regel (lege ruimte)
         { name: '\u200b', value: '\u200b', inline: false },
         
         // Informatie
