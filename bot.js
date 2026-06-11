@@ -526,7 +526,6 @@ async function sendMilestoneDM(member, milestone, prize, roleId, roleName) {
       [
         `**Je hebt zojuist de mijlpaal van ${milestone} invites bereikt!**`,
         '',
-        `**Behaalde rol:** <@&${correctRoleId}>`,
         `**Prijs:** ${prize}`,
         '',
         `✨ Maak een ticket aan om je prijs te claimen:`,
