@@ -589,24 +589,31 @@ const embed = new EmbedBuilder()
     )
     .setThumbnail(client.user.displayAvatarURL())
     .addFields(
-        // Bovenste rij (3 kolommen)
-        { name: '3 invites', value: '67dance', inline: true },
-        { name: '5 invites', value: 'VIP Join Message', inline: true },
-        { name: '10 invites', value: '/reviewmij Command', inline: true },
+        // Bovenste rij
+        { name: '**3 invites**', value: '`67dance`', inline: true },
+        { name: '**5 invites**', value: '**VIP Join Message**', inline: true },
+        { name: '**10 invites**', value: '`/reviewmij Command`', inline: true },
         
-        // Onderste rij (3 kolommen, middelste is leeg)
-        { name: '15 invites', value: 'Voertuig naar keuze: Buff of Baller', inline: true },
-        { name: '\u200b', value: '\u200b', inline: true },  // Leeg/onzichtbaar
-        { name: '20 invites', value: 'VIP Blackmarket', inline: true },
+        // Onderste rij met leeg midden
+        { name: '**15 invites**', value: 'Voertuig naar keuze: **Buff** of **Baller**', inline: true },
+        { name: '\u200b', value: '\u200b', inline: true },
+        { name: '**20 invites**', value: '**VIP Blackmarket**', inline: true },
         
+        // Spatie na de laatste rewards
+        { name: '\u200b', value: '\u200b', inline: false },
+        
+        // Lege regel tussen rewards en informatie
+        { name: '\u200b', value: '\u200b', inline: false },
+        
+        // Informatie
         {
-            name: 'Belangrijke informatie',
+            name: '**Belangrijke informatie**',
             value: [
-                '• Alleen geldige invites tellen mee.',
-                '• Fake accounts en alt-accounts zijn niet toegestaan.',
-                '• Alle invites worden gecontroleerd door het staffteam.',
-                '• Bij misbruik vervallen alle behaalde beloningen.',
-                '• Mijlpaal bereikt? Spreek een stafflid aan voor verificatie.',
+                '• Alleen **geldige invites** tellen mee.',
+                '• **Fake accounts** en **alt-accounts** zijn niet toegestaan.',
+                '• Alle invites worden **gecontroleerd** door het staffteam.',
+                '• Bij **misbruik** vervallen alle behaalde beloningen.',
+                '• Mijlpaal bereikt? Spreek een **stafflid** aan voor verificatie.',
             ].join('\n'),
             inline: false,
         },
