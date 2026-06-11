@@ -574,41 +574,39 @@ async function handleInviteActieCommand(interaction) {
     return;
   }
 
-  const embed = new EmbedBuilder()
+const embed = new EmbedBuilder()
     .setColor(0x2b8cff)
-    .setAuthor({ name: 'Utrecht Roleplay' })
+    .setAuthor({ 
+        name: 'Utrecht Roleplay' 
+    })
     .setTitle('Invite Actie')
     .setDescription(
-      [
-        'Nodig vrienden uit voor onze Discord-server en speel exclusieve beloningen vrij.',
-        '',
-        `Bekijk je aantal invites in <#${INVITES_CHANNEL_ID}> met **/invites**.`,
-      ].join('\n'),
+        [
+            'Nodig vrienden uit voor onze Discord-server en verdien **exclusieve beloningen**!',
+            '',
+            `📊 Bekijk je aantal invites in <#${INVITES_CHANNEL_ID}> met de **/invites**-opdracht.`,
+        ].join('\n'),
     )
+    .setThumbnail(client.user.displayAvatarURL())
     .addFields(
-      { name: '3 invites', value: '67dance', inline: true },
-      { name: '5 invites', value: 'VIP Join Message', inline: true },
-      { name: '10 invites', value: '/revivemij Command', inline: true },
-      {
-        name: '15 invites',
-        value: 'Voertuig naar keuze: Buff of Baller',
-        inline: true,
-      },
-      { name: '25 invites', value: 'VIP Blackmarket', inline: true },
-      {
-        name: 'Belangrijke informatie',
-        value:
-          [
-            'Alleen geldige invites tellen mee.',
-            'Fake accounts en alt-accounts zijn niet toegestaan.',
-            'Alle invites worden gecontroleerd door het staffteam.',
-            'Bij misbruik vervallen alle behaalde beloningen.',
-            'Mijlpaal bereikt? Spreek een stafflid aan voor controle.',
-          ].join('\n'),
-        inline: false,
-      },
+        { name: '3 invites', value: '`67dance`', inline: true },
+        { name: '5 invites', value: '`VIP Join Message`', inline: true },
+        { name: '10 invites', value: '`/revivemij` Command', inline: true },
+        { name: '15 invites', value: 'Voertuig naar keuze: `Buff` of `Baller`', inline: true },
+        { name: '25 invites', value: '`VIP Blackmarket`', inline: true },
+        {
+            name: 'Belangrijke informatie',
+            value: [
+                '• Alleen **geldige invites** tellen mee.',
+                '• **Fake accounts** en **alt-accounts** zijn niet toegestaan.',
+                '• Alle invites worden **gecontroleerd** door het staffteam.',
+                '• Bij **misbruik** vervallen alle behaalde beloningen.',
+                '• Mijlpaal bereikt? Spreek een **stafflid** aan voor verificatie.',
+            ].join('\n'),
+            inline: false,
+        },
     )
-    .setFooter({ text: 'Utrecht Roleplay Invite Actie' })
+    .setFooter({ text: 'Utrecht Roleplay • Invite Actie' })
     .setTimestamp();
 
   await targetChannel.send({
