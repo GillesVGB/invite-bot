@@ -600,7 +600,7 @@ const embed = new EmbedBuilder()
         { name: '**20 invites**', value: '`VIP Blackmarket`', inline: true },
         
         // Kleine regel (lege ruimte)
-        { name: '\u200b', value: '\u200b', inline: false },
+        { name: '\u200b', value: '\n', inline: false },
         
         // Informatie
         {
