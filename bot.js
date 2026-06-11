@@ -584,29 +584,29 @@ const embed = new EmbedBuilder()
         [
             'Nodig vrienden uit voor onze Discord-server en verdien **exclusieve beloningen**!',
             '',
-            `📊 Bekijk je aantal invites in <#${INVITES_CHANNEL_ID}> met de **/invites**-opdracht.`,
+            `Bekijk je aantal invites in <#${INVITES_CHANNEL_ID}> met **/invites**.`,
         ].join('\n'),
     )
     .setThumbnail(client.user.displayAvatarURL())
     .addFields(
-        { name: '3 invites', value: '`67dance`', inline: true },
-        { name: '5 invites', value: '`VIP Join Message`', inline: true },
-        { name: '10 invites', value: '`/revivemij` Command', inline: true },
-        { name: '15 invites', value: 'Voertuig naar keuze: `Buff` of `Baller`', inline: true },
-        { name: '25 invites', value: '`VIP Blackmarket`', inline: true },
+        { name: '3 invites', value: '67dance', inline: true },
+        { name: '5 invites', value: 'VIP Join Message', inline: true },
+        { name: '10 invites', value: '/reviewmij Command', inline: true },
+        { name: '15 invites', value: 'Voertuig naar keuze: Buff of Baller', inline: true },
+        { name: '25 invites', value: 'VIP Blackmarket', inline: true },
         {
             name: 'Belangrijke informatie',
             value: [
-                '• Alleen **geldige invites** tellen mee.',
-                '• **Fake accounts** en **alt-accounts** zijn niet toegestaan.',
-                '• Alle invites worden **gecontroleerd** door het staffteam.',
-                '• Bij **misbruik** vervallen alle behaalde beloningen.',
-                '• Mijlpaal bereikt? Spreek een **stafflid** aan voor verificatie.',
+                '• Alleen geldige invites tellen mee.',
+                '• Fake accounts en alt-accounts zijn niet toegestaan.',
+                '• Alle invites worden gecontroleerd door het staffteam.',
+                '• Bij misbruik vervallen alle behaalde beloningen.',
+                '• Mijlpaal bereikt? Spreek een stafflid aan voor verificatie.',
             ].join('\n'),
             inline: false,
         },
     )
-    .setFooter({ text: 'Utrecht Roleplay • Invite Actie' })
+    .setFooter({ text: 'Utrecht Roleplay Invite Actie' })
     .setTimestamp();
 
   await targetChannel.send({
