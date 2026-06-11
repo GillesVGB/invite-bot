@@ -503,11 +503,58 @@ async function recordJoin(member, invite) {
   };
 }
 
+async function sendMilestoneDM(member, milestone, prize, roleId, roleName) {
+  const dmEmbed = new EmbedBuilder()
+    .setColor(0xFF69B4)
+    .setAuthor({ 
+      name: 'Utrecht Roleplay',
+      iconURL: 'https://media.discordapp.net/attachments/1509672380627161198/1514660051883917454/90c78069-a2a7-4ab2-866f-bf3d4de1ab89.png'
+    })
+    .setTitle('🎉 Gefeliciteerd! 🎉')
+    .setDescription(
+      [
+        `**Je hebt zojuist de mijlpaal van ${milestone} invites bereikt!**`,
+        '',
+        `**Behaalde rol:** <@&${roleId}>`,
+        `**Prijs:** ${prize}`,
+        '',
+        `✨ Maak een ticket aan om je prijs te claimen:`,
+        `https://discord.gg/WwbNK2hrFj`,
+      ].join('\n'),
+    )
+    .setFooter({ text: 'Utrecht Roleplay • Invite Actie' })
+    .setTimestamp();
+
+  try {
+    await member.send({ embeds: [dmEmbed] });
+    console.log(`DM gestuurd naar ${member.user.tag} voor ${milestone} invites`);
+  } catch (error) {
+    console.error(`Kon geen DM sturen naar ${member.user.tag}:`, error.message);
+  }
+}
+
+// Dit is de enige applyRewardRoles functie die je nodig hebt (met DM)
 async function applyRewardRoles(member, validInviteCount) {
   const guildData = ensureGuildData(member.guild.id);
   const rewardRoles = guildData.rewardRoles || {};
   const awarded = [];
   const failed = [];
+
+  const milestonePrizes = {
+    3: '`67dance`',
+    5: '`VIP Join Message`',
+    10: '`/reviewmij Command`',
+    15: '`Buff / Baller (auto)`',
+    20: '`VIP Blackmarket`',
+  };
+
+  const milestoneRoleNames = {
+    3: '❯ 3 Invites',
+    5: '❯ 5 Invites',
+    10: '❯ 10 Invites',
+    15: '❯ 15 Invites',
+    20: '❯ 20 Invites',
+  };
 
   for (const [milestoneText, roleId] of Object.entries(rewardRoles)) {
     const milestone = Number(milestoneText);
@@ -524,6 +571,11 @@ async function applyRewardRoles(member, validInviteCount) {
     try {
       await member.roles.add(role, `Invite reward voor ${milestone} invites`);
       awarded.push(role.name);
+      
+      const prize = milestonePrizes[milestone] || 'Exclusieve beloning';
+      const roleName = milestoneRoleNames[milestone] || role.name;
+      await sendMilestoneDM(member, milestone, prize, roleId, roleName);
+      
     } catch (error) {
       failed.push(`${role.name}: ${error.message}`);
     }
