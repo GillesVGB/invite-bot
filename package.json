@@ -1,7 +1,7 @@
 {
   "name": "utrecht-roleplay-invite-bot",
   "version": "1.0.0",
-  "description": "Discord invite tracker bot voor Utrecht Roleplay.",
+  "description": "Render Discord invite tracker bot voor Utrecht Roleplay.",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
