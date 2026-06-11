@@ -596,7 +596,7 @@ const embed = new EmbedBuilder()
         { name: '❯ **10 invites**', value: '/reviewmij\nCommand', inline: true },
         
         // Rij 2: 15 invites & (leeg) & 20 invites
-        { name: '❯ **15 invites**', value: 'Voertuig naar\nkeuze: Buff of\nBaller', inline: true },
+        { name: '❯ **15 invites**', value: 'Buff / Baller (auto), inline: true },
         { name: '\u200b', value: '\u200b', inline: true },
         { name: '❯ **20 invites**', value: 'VIP Blackmarket\n', inline: true },
         
