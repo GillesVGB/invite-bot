@@ -591,13 +591,13 @@ const embed = new EmbedBuilder()
     .addFields(
         // Bovenste rij
         { name: '**3 invites**', value: '`67dance`', inline: true },
-        { name: '**5 invites**', value: '**VIP Join Message**', inline: true },
+        { name: '**5 invites**', value: '`VIP Join Message`', inline: true },
         { name: '**10 invites**', value: '`/reviewmij Command`', inline: true },
         
         // Onderste rij met leeg midden
-        { name: '**15 invites**', value: 'Voertuig naar keuze: **Buff** of **Baller**', inline: true },
+        { name: '**15 invites**', value: '`Voertuig naar keuze: Buff of Baller`', inline: true },
         { name: '\u200b', value: '\u200b', inline: true },
-        { name: '**20 invites**', value: '**VIP Blackmarket**', inline: true },
+        { name: '**20 invites**', value: '`VIP Blackmarket`', inline: true },
         
         // Kleine regel (lege ruimte)
         { name: '\u200b', value: '\u200b', inline: false },
