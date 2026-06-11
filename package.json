@@ -1,0 +1,16 @@
+{
+  "name": "utrecht-roleplay-invite-bot",
+  "version": "1.0.0",
+  "description": "Discord invite tracker bot voor Utrecht Roleplay.",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "discord.js": "^14.16.3"
+  }
+}
