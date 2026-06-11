@@ -595,9 +595,8 @@ const embed = new EmbedBuilder()
         { name: '❯ **5 invites**', value: 'VIP Join Message\n', inline: true },
         { name: '❯ **10 invites**', value: '/reviewmij\nCommand', inline: true },
         
-        // Rij 2: 15 invites & (leeg) & 20 invites
+        // Rij 2: 15 invites & 20 invites
         { name: '❯ **15 invites**', value: 'Buff / Baller (auto)', inline: true },
-        { name: '\u200b', value: '\u200b', inline: true },
         { name: '❯ **20 invites**', value: 'VIP Blackmarket\n', inline: true },
         
         // Kleine regel
