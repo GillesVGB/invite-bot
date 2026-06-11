@@ -504,6 +504,17 @@ async function recordJoin(member, invite) {
 }
 
 async function sendMilestoneDM(member, milestone, prize, roleId, roleName) {
+  // Vaste rol-ID's (hardcoded op basis van jouw server)
+  const roleIds = {
+    3: '1514664828285747290',
+    5: '1514664846120189992',
+    10: '1514664856127803534',
+    15: '1514664851350487162',
+    20: '1514664840310816900',
+  };
+  
+  const correctRoleId = roleIds[milestone] || roleId;
+  
   const dmEmbed = new EmbedBuilder()
     .setColor(0xFF69B4)
     .setAuthor({ 
@@ -515,7 +526,7 @@ async function sendMilestoneDM(member, milestone, prize, roleId, roleName) {
       [
         `**Je hebt zojuist de mijlpaal van ${milestone} invites bereikt!**`,
         '',
-        `**Behaalde rol:** <@&${roleId}>`,
+        `**Behaalde rol:** <@&${correctRoleId}>`,
         `**Prijs:** ${prize}`,
         '',
         `✨ Maak een ticket aan om je prijs te claimen:`,
