@@ -575,7 +575,7 @@ async function handleInviteActieCommand(interaction) {
   }
 
 const embed = new EmbedBuilder()
-    .setColor(0xFF69B4)  // Roze/cadeau kleur
+    .setColor(0xFF69B4)
     .setAuthor({ 
         name: 'Utrecht Roleplay',
         iconURL: 'https://media.discordapp.net/attachments/1509672380627161198/1514660051883917454/90c78069-a2a7-4ab2-866f-bf3d4de1ab89.png'
@@ -590,20 +590,20 @@ const embed = new EmbedBuilder()
     )
     .setThumbnail('https://media.discordapp.net/attachments/1509672380627161198/1514660051883917454/90c78069-a2a7-4ab2-866f-bf3d4de1ab89.png')
     .addFields(
-        // Bovenste rij - cadeau kleuren
-        { name: '❯ **3 invites**', value: '`67dance`', inline: true },
-        { name: '❯ **5 invites**', value: '`VIP Join Message`', inline: true },
-        { name: '❯ **10 invites**', value: '`/reviewmij Command`', inline: true },
+        // Rij 1: 3 invites & 5 invites & 10 invites
+        { name: '❯ **3 invites**', value: '67dance\n', inline: true },
+        { name: '❯ **5 invites**', value: 'VIP Join Message\n', inline: true },
+        { name: '❯ **10 invites**', value: '/reviewmij\nCommand', inline: true },
         
-        // Onderste rij met leeg midden
-        { name: '❯ **15 invites**', value: '`Voertuig naar keuze: Buff of Baller`', inline: true },
+        // Rij 2: 15 invites & (leeg) & 20 invites
+        { name: '❯ **15 invites**', value: 'Voertuig naar\nkeuze: Buff of\nBaller', inline: true },
         { name: '\u200b', value: '\u200b', inline: true },
-        { name: '❯ **20 invites**', value: '`VIP Blackmarket`', inline: true },
+        { name: '❯ **20 invites**', value: 'VIP Blackmarket\n', inline: true },
         
         // Kleine regel
         { name: '\u200b', value: '\n', inline: false },
         
-        // Informatie - gouden/feestelijke kleur toevoeging
+        // Informatie
         {
             name: '**Belangrijke informatie**',
             value: [
@@ -616,7 +616,7 @@ const embed = new EmbedBuilder()
             inline: false,
         },
     )
-    .setFooter({ text: 'Utrecht Roleplay • Invite Actie' })
+    .setFooter({ text: 'Utrecht Roleplay Invite Actie' })
     .setTimestamp();
   
   await targetChannel.send({
