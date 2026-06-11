@@ -590,14 +590,15 @@ const embed = new EmbedBuilder()
     )
     .setThumbnail('https://media.discordapp.net/attachments/1509672380627161198/1514660051883917454/90c78069-a2a7-4ab2-866f-bf3d4de1ab89.png')
     .addFields(
-        // Rij 1: 3 invites & 5 invites & 10 invites
-        { name: '❯ **3 invites**', value: '67dance\n', inline: true },
-        { name: '❯ **5 invites**', value: 'VIP Join Message\n', inline: true },
+        // Rij 1: 3 invites, 5 invites, 10 invites
+        { name: '❯ **3 invites**', value: '67dance', inline: true },
+        { name: '❯ **5 invites**', value: 'VIP Join Message', inline: true },
         { name: '❯ **10 invites**', value: '/reviewmij\nCommand', inline: true },
         
-        // Rij 2: 15 invites & 20 invites
+        // Rij 2: 15 invites (onder 3), 20 invites (onder 5), leeg (onder 10)
         { name: '❯ **15 invites**', value: 'Buff / Baller (auto)', inline: true },
-        { name: '❯ **20 invites**', value: 'VIP Blackmarket\n', inline: true },
+        { name: '❯ **20 invites**', value: 'VIP Blackmarket', inline: true },
+        { name: '\u200b', value: '\u200b', inline: true },
         
         // Kleine regel
         { name: '\u200b', value: '\n', inline: false },
