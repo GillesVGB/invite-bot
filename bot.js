@@ -45,7 +45,7 @@ const client = new Client({
 });
 
 const inviteCache = new Map();
-const rewardMilestones = [3, 5, 10, 15, 25];
+const rewardMilestones = [3, 5, 10, 15, 20];
 const db = { guilds: {} };
 
 const commands = [
@@ -589,11 +589,16 @@ const embed = new EmbedBuilder()
     )
     .setThumbnail(client.user.displayAvatarURL())
     .addFields(
+        // Bovenste rij (3 kolommen)
         { name: '3 invites', value: '67dance', inline: true },
         { name: '5 invites', value: 'VIP Join Message', inline: true },
         { name: '10 invites', value: '/reviewmij Command', inline: true },
+        
+        // Onderste rij (3 kolommen, middelste is leeg)
         { name: '15 invites', value: 'Voertuig naar keuze: Buff of Baller', inline: true },
-        { name: '25 invites', value: 'VIP Blackmarket', inline: true },
+        { name: '\u200b', value: '\u200b', inline: true },  // Leeg/onzichtbaar
+        { name: '20 invites', value: 'VIP Blackmarket', inline: true },
+        
         {
             name: 'Belangrijke informatie',
             value: [
@@ -608,7 +613,7 @@ const embed = new EmbedBuilder()
     )
     .setFooter({ text: 'Utrecht Roleplay Invite Actie' })
     .setTimestamp();
-
+  
   await targetChannel.send({
     embeds: [embed],
     allowedMentions: { parse: [] },
