@@ -575,9 +575,10 @@ async function handleInviteActieCommand(interaction) {
   }
 
 const embed = new EmbedBuilder()
-    .setColor(0x2b8cff)
+    .setColor(0xFF69B4)  // Roze/cadeau kleur
     .setAuthor({ 
-        name: 'Utrecht Roleplay' 
+        name: 'Utrecht Roleplay',
+        iconURL: 'https://media.discordapp.net/attachments/1509672380627161198/1514660051883917454/90c78069-a2a7-4ab2-866f-bf3d4de1ab89.png'
     })
     .setTitle('Invite Actie')
     .setDescription(
@@ -587,22 +588,22 @@ const embed = new EmbedBuilder()
             `Bekijk je aantal invites in <#${INVITES_CHANNEL_ID}> met **/invites**.`,
         ].join('\n'),
     )
-    .setThumbnail(client.user.displayAvatarURL())
+    .setThumbnail('https://media.discordapp.net/attachments/1509672380627161198/1514660051883917454/90c78069-a2a7-4ab2-866f-bf3d4de1ab89.png')
     .addFields(
-        // Bovenste rij
-        { name: '**3 invites**', value: '`67dance`', inline: true },
-        { name: '**5 invites**', value: '`VIP Join Message`', inline: true },
-        { name: '**10 invites**', value: '`/reviewmij Command`', inline: true },
+        // Bovenste rij - cadeau kleuren
+        { name: '❯ **3 invites**', value: '`67dance`', inline: true },
+        { name: '❯ **5 invites**', value: '`VIP Join Message`', inline: true },
+        { name: '❯ **10 invites**', value: '`/reviewmij Command`', inline: true },
         
         // Onderste rij met leeg midden
-        { name: '**15 invites**', value: '`Voertuig naar keuze: Buff of Baller`', inline: true },
+        { name: '❯ **15 invites**', value: '`Voertuig naar keuze: Buff of Baller`', inline: true },
         { name: '\u200b', value: '\u200b', inline: true },
-        { name: '**20 invites**', value: '`VIP Blackmarket`', inline: true },
+        { name: '❯ **20 invites**', value: '`VIP Blackmarket`', inline: true },
         
-        // Kleine regel (lege ruimte)
+        // Kleine regel
         { name: '\u200b', value: '\n', inline: false },
         
-        // Informatie
+        // Informatie - gouden/feestelijke kleur toevoeging
         {
             name: '**Belangrijke informatie**',
             value: [
@@ -615,7 +616,7 @@ const embed = new EmbedBuilder()
             inline: false,
         },
     )
-    .setFooter({ text: 'Utrecht Roleplay Invite Actie' })
+    .setFooter({ text: 'Utrecht Roleplay • Invite Actie' })
     .setTimestamp();
   
   await targetChannel.send({
