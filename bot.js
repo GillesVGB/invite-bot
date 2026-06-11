@@ -859,12 +859,10 @@ async function handleSyncRewardsCommand(interaction) {
   await interaction.editReply(
     `Rewards gesynchroniseerd. Gecontroleerd: **${checked}**, rollen gegeven: **${awarded}**, mislukt: **${failed}**.`,
   );
-}
+}// ============================================
+// WEBSERVER
 // ============================================
-// WEBSERVER (GEEN http, ALLEEN express)
-// ============================================
-const express = require('express');
-const webApp = express();
+const webApp = express();  // ← Alleen dit, geen require!
 const webPort = process.env.PORT || 3000;
 
 webApp.get('/', (req, res) => {
@@ -878,8 +876,3 @@ webApp.get('/health', (req, res) => {
 webApp.listen(webPort, () => {
     console.log(`✅ Webpagina op poort ${webPort}`);
 });
-
-// ============================================
-// LOGIN - ALLEEN HIER!
-// ============================================
-client.login(TOKEN);
