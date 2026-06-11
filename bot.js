@@ -863,7 +863,6 @@ async function handleSyncRewardsCommand(interaction) {
 // WEBSERVER (GEEN http, ALLEEN express)
 // ============================================
 const express = require('express');
-const path = require('path');
 const webApp = express();
 const webPort = process.env.PORT || 3000;
 
