@@ -17,7 +17,8 @@ const TOKEN = process.env.DISCORD_TOKEN;
 const PORT = process.env.PORT || 3000;
 const DATA_FILE =
   process.env.DATA_FILE || path.join(__dirname, 'data', 'invite-data.json');
-const INVITES_CHANNEL_ID = process.env.INVITES_CHANNEL_ID;
+const INVITES_CHANNEL_ID =
+  process.env.INVITES_CHANNEL_ID || '1508515294925029388';
 const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || 0);
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -59,19 +60,13 @@ const commands = [
     ),
   new SlashCommandBuilder()
     .setName('inviteactie')
-    .setDescription('Plaats de Invite Actie embed met alle beloningen.')
+    .setDescription('Plaats de Invite Actie embed met alle beloningen zonder ping.')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addChannelOption((option) =>
       option
         .setName('channel')
         .setDescription('Kanaal waar de embed geplaatst moet worden.')
         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
-        .setRequired(false),
-    )
-    .addBooleanOption((option) =>
-      option
-        .setName('ping')
-        .setDescription('Stuur @everyone mee met de actie.')
         .setRequired(false),
     ),
   new SlashCommandBuilder()
@@ -102,6 +97,78 @@ const commands = [
     .setDescription('Geef reward-rollen aan leden die ze al behaald hebben.')
     .setDefaultMemberPermissions(
       PermissionFlagsBits.ManageGuild | PermissionFlagsBits.ManageRoles,
+    ),
+  new SlashCommandBuilder()
+    .setName('addinvites')
+    .setDescription('Geef handmatig geldige invites aan een speler.')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addUserOption((option) =>
+      option
+        .setName('user')
+        .setDescription('De speler die invites krijgt.')
+        .setRequired(true),
+    )
+    .addIntegerOption((option) =>
+      option
+        .setName('amount')
+        .setDescription('Aantal invites dat je wilt toevoegen.')
+        .setMinValue(1)
+        .setRequired(true),
+    )
+    .addStringOption((option) =>
+      option
+        .setName('reason')
+        .setDescription('Optionele reden voor de correctie.')
+        .setMaxLength(120)
+        .setRequired(false),
+    ),
+  new SlashCommandBuilder()
+    .setName('removeinvites')
+    .setDescription('Haal handmatig geldige invites weg bij een speler.')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addUserOption((option) =>
+      option
+        .setName('user')
+        .setDescription('De speler waarbij je invites weghaalt.')
+        .setRequired(true),
+    )
+    .addIntegerOption((option) =>
+      option
+        .setName('amount')
+        .setDescription('Aantal invites dat je wilt verwijderen.')
+        .setMinValue(1)
+        .setRequired(true),
+    )
+    .addStringOption((option) =>
+      option
+        .setName('reason')
+        .setDescription('Optionele reden voor de correctie.')
+        .setMaxLength(120)
+        .setRequired(false),
+    ),
+  new SlashCommandBuilder()
+    .setName('setinvites')
+    .setDescription('Zet het geldige invite-aantal van een speler exact.')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addUserOption((option) =>
+      option
+        .setName('user')
+        .setDescription('De speler waarvan je het aantal wilt zetten.')
+        .setRequired(true),
+    )
+    .addIntegerOption((option) =>
+      option
+        .setName('amount')
+        .setDescription('Het nieuwe aantal geldige invites.')
+        .setMinValue(0)
+        .setRequired(true),
+    )
+    .addStringOption((option) =>
+      option
+        .setName('reason')
+        .setDescription('Optionele reden voor de correctie.')
+        .setMaxLength(120)
+        .setRequired(false),
     ),
 ].map((command) => command.toJSON());
 
@@ -192,6 +259,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (interaction.commandName === 'syncrewards') {
     await handleSyncRewardsCommand(interaction);
+    return;
+  }
+
+  if (interaction.commandName === 'addinvites') {
+    await handleAddInvitesCommand(interaction);
+    return;
+  }
+
+  if (interaction.commandName === 'removeinvites') {
+    await handleRemoveInvitesCommand(interaction);
+    return;
+  }
+
+  if (interaction.commandName === 'setinvites') {
+    await handleSetInvitesCommand(interaction);
   }
 });
 
@@ -308,9 +390,16 @@ function getUserStats(guildId, userId) {
       valid: 0,
       invalid: 0,
       total: 0,
+      manual: 0,
       lastInviteAt: null,
     };
   }
+
+  guildData.users[userId].valid ??= 0;
+  guildData.users[userId].invalid ??= 0;
+  guildData.users[userId].total ??= 0;
+  guildData.users[userId].manual ??= 0;
+  guildData.users[userId].lastInviteAt ??= null;
 
   return guildData.users[userId];
 }
@@ -452,14 +541,19 @@ async function handleInvitesCommand(interaction) {
     : 'Alle standaard mijlpalen zijn behaald.';
 
   const embed = new EmbedBuilder()
-    .setColor(0x2ecc71)
+    .setColor(0x2b8cff)
+    .setAuthor({ name: 'Utrecht Roleplay Invite Tracker' })
     .setTitle(`Invites van ${user.username}`)
-    .setDescription(`${user} heeft **${stats.valid}** geldige invite(s).`)
+    .setThumbnail(user.displayAvatarURL({ size: 128 }))
+    .setDescription(`${user} staat momenteel op **${stats.valid}** geldige invite(s).`)
     .addFields(
-      { name: 'Totaal gedetecteerd', value: String(stats.total), inline: true },
+      { name: 'Geldig', value: String(stats.valid), inline: true },
+      { name: 'Gedetecteerd', value: String(stats.total), inline: true },
+      { name: 'Handmatig', value: String(stats.manual || 0), inline: true },
       { name: 'Ongeldig', value: String(stats.invalid), inline: true },
       { name: 'Volgende mijlpaal', value: nextText, inline: false },
     )
+    .setFooter({ text: 'Alleen geldige invites tellen mee voor beloningen.' })
     .setTimestamp();
 
   await interaction.reply({
@@ -470,11 +564,7 @@ async function handleInvitesCommand(interaction) {
 
 async function handleInviteActieCommand(interaction) {
   const targetChannel =
-    interaction.options.getChannel('channel') ||
-    (INVITES_CHANNEL_ID
-      ? await interaction.guild.channels.fetch(INVITES_CHANNEL_ID).catch(() => null)
-      : interaction.channel);
-  const shouldPing = interaction.options.getBoolean('ping') ?? true;
+    interaction.options.getChannel('channel') || interaction.channel;
 
   if (!targetChannel || !targetChannel.isTextBased()) {
     await interaction.reply({
@@ -485,57 +575,154 @@ async function handleInviteActieCommand(interaction) {
   }
 
   const embed = new EmbedBuilder()
-    .setColor(0xe74c3c)
-    .setTitle('Invite Actie - Utrecht Roleplay')
+    .setColor(0x2b8cff)
+    .setAuthor({ name: 'Utrecht Roleplay' })
+    .setTitle('Invite Actie')
     .setDescription(
       [
-        'Wil jij gratis exclusieve beloningen verdienen? Dan hebben we goed nieuws.',
+        'Nodig vrienden uit voor onze Discord-server en speel exclusieve beloningen vrij.',
         '',
-        'Vanaf vandaag kan je door vrienden uit te nodigen voor onze Discord-server verschillende beloningen vrijspelen. Hoe meer actieve spelers jij naar Utrecht Roleplay brengt, hoe beter de prijzen worden.',
-        '',
-        '## Beloningen:',
-        '',
-        '**3 invites**',
-        '> 67dance',
-        '',
-        '**5 invites**',
-        '> VIP Join Message',
-        '',
-        '**10 invites**',
-        '> /revivemij Command',
-        '',
-        '**15 invites**',
-        '> Voertuig naar keuze (Buff of Baller)',
-        '',
-        '**25 invites**',
-        '> VIP Blackmarket',
-        '',
-        '## Belangrijke informatie:',
-        '* Alleen geldige invites tellen mee.',
-        '* Fake accounts en alt-accounts zijn niet toegestaan.',
-        '* Alle invites worden gecontroleerd door het staffteam.',
-        '* Bij misbruik vervallen alle behaalde beloningen.',
-        '',
-        INVITES_CHANNEL_ID
-          ? `Je aantal invites kan je bekijken in <#${INVITES_CHANNEL_ID}> met:`
-          : 'Je aantal invites kan je bekijken met:',
-        '> /invites',
-        '',
-        'Heb je een mijlpaal bereikt? Spreek een stafflid aan zodat je beloning gecontroleerd en toegekend kan worden.',
+        `Bekijk je aantal invites in <#${INVITES_CHANNEL_ID}> met **/invites**.`,
       ].join('\n'),
     )
+    .addFields(
+      { name: '3 invites', value: '67dance', inline: true },
+      { name: '5 invites', value: 'VIP Join Message', inline: true },
+      { name: '10 invites', value: '/revivemij Command', inline: true },
+      {
+        name: '15 invites',
+        value: 'Voertuig naar keuze: Buff of Baller',
+        inline: true,
+      },
+      { name: '25 invites', value: 'VIP Blackmarket', inline: true },
+      {
+        name: 'Belangrijke informatie',
+        value:
+          [
+            'Alleen geldige invites tellen mee.',
+            'Fake accounts en alt-accounts zijn niet toegestaan.',
+            'Alle invites worden gecontroleerd door het staffteam.',
+            'Bij misbruik vervallen alle behaalde beloningen.',
+            'Mijlpaal bereikt? Spreek een stafflid aan voor controle.',
+          ].join('\n'),
+        inline: false,
+      },
+    )
+    .setFooter({ text: 'Utrecht Roleplay Invite Actie' })
     .setTimestamp();
 
   await targetChannel.send({
-    content: shouldPing ? '-# @everyone' : undefined,
     embeds: [embed],
-    allowedMentions: shouldPing ? { parse: ['everyone'] } : { parse: [] },
+    allowedMentions: { parse: [] },
   });
 
   await interaction.reply({
     content: `Invite Actie embed geplaatst in ${targetChannel}.`,
     flags: MessageFlags.Ephemeral,
   });
+}
+
+async function handleAddInvitesCommand(interaction) {
+  const user = interaction.options.getUser('user', true);
+  const amount = interaction.options.getInteger('amount', true);
+  const reason = interaction.options.getString('reason') || 'Geen reden opgegeven';
+  const stats = getUserStats(interaction.guild.id, user.id);
+
+  stats.valid += amount;
+  stats.manual += amount;
+  stats.lastInviteAt = new Date().toISOString();
+
+  await saveGuildData(interaction.guild.id);
+
+  const member = await interaction.guild.members.fetch(user.id).catch(() => null);
+  if (member) {
+    await applyRewardRoles(member, stats.valid);
+  }
+
+  await interaction.reply({
+    embeds: [
+      buildAdminEmbed(
+        'Invites toegevoegd',
+        user,
+        `**+${amount}** geldige invite(s) toegevoegd.`,
+        stats,
+        reason,
+      ),
+    ],
+    flags: MessageFlags.Ephemeral,
+  });
+}
+
+async function handleRemoveInvitesCommand(interaction) {
+  const user = interaction.options.getUser('user', true);
+  const amount = interaction.options.getInteger('amount', true);
+  const reason = interaction.options.getString('reason') || 'Geen reden opgegeven';
+  const stats = getUserStats(interaction.guild.id, user.id);
+  const removed = Math.min(amount, stats.valid);
+
+  stats.valid -= removed;
+  stats.manual = Math.max(0, stats.manual - removed);
+
+  await saveGuildData(interaction.guild.id);
+
+  await interaction.reply({
+    embeds: [
+      buildAdminEmbed(
+        'Invites verwijderd',
+        user,
+        `**-${removed}** geldige invite(s) verwijderd.`,
+        stats,
+        reason,
+      ),
+    ],
+    flags: MessageFlags.Ephemeral,
+  });
+}
+
+async function handleSetInvitesCommand(interaction) {
+  const user = interaction.options.getUser('user', true);
+  const amount = interaction.options.getInteger('amount', true);
+  const reason = interaction.options.getString('reason') || 'Geen reden opgegeven';
+  const stats = getUserStats(interaction.guild.id, user.id);
+  const difference = amount - stats.valid;
+
+  stats.valid = amount;
+  stats.manual = Math.max(0, stats.manual + difference);
+  stats.lastInviteAt = new Date().toISOString();
+
+  await saveGuildData(interaction.guild.id);
+
+  const member = await interaction.guild.members.fetch(user.id).catch(() => null);
+  if (member) {
+    await applyRewardRoles(member, stats.valid);
+  }
+
+  await interaction.reply({
+    embeds: [
+      buildAdminEmbed(
+        'Invites ingesteld',
+        user,
+        `Geldige invites ingesteld op **${amount}**.`,
+        stats,
+        reason,
+      ),
+    ],
+    flags: MessageFlags.Ephemeral,
+  });
+}
+
+function buildAdminEmbed(title, user, description, stats, reason) {
+  return new EmbedBuilder()
+    .setColor(0xf59e0b)
+    .setAuthor({ name: 'Invite beheer' })
+    .setTitle(title)
+    .setDescription(`${user}\n${description}`)
+    .addFields(
+      { name: 'Nieuw totaal', value: String(stats.valid), inline: true },
+      { name: 'Handmatig', value: String(stats.manual || 0), inline: true },
+      { name: 'Reden', value: reason, inline: false },
+    )
+    .setTimestamp();
 }
 
 async function handleSetRewardRoleCommand(interaction) {
