@@ -172,7 +172,6 @@ const commands = [
     ),
 ].map((command) => command.toJSON());
 
-startWebServer();
 const dataReady = loadData();
 
 client.once(Events.ClientReady, async () => {
@@ -282,32 +281,6 @@ client.login(TOKEN);
 process.on('unhandledRejection', (error) => {
   console.error('Unhandled promise rejection:', error);
 });
-
-function startWebServer() {
-  const server = http.createServer((request, response) => {
-    const body =
-      request.url === '/health'
-        ? JSON.stringify({
-            ok: true,
-            bot: client.user ? client.user.tag : 'starting',
-            guilds: client.guilds.cache.size,
-            storage: supabase ? 'supabase' : 'local-json',
-          })
-        : 'Utrecht Roleplay Invite Bot draait.';
-
-    response.writeHead(200, {
-      'content-type':
-        request.url === '/health'
-          ? 'application/json; charset=utf-8'
-          : 'text/plain; charset=utf-8',
-    });
-    response.end(body);
-  });
-
-  server.listen(PORT, () => {
-    console.log(`Render webserver luistert op poort ${PORT}`);
-  });
-}
 
 async function loadData() {
   if (supabase) {
@@ -886,3 +859,27 @@ async function handleSyncRewardsCommand(interaction) {
     `Rewards gesynchroniseerd. Gecontroleerd: **${checked}**, rollen gegeven: **${awarded}**, mislukt: **${failed}**.`,
   );
 }
+// ============================================
+// WEBSERVER (GEEN http, ALLEEN express)
+// ============================================
+const express = require('express');
+const path = require('path');
+const webApp = express();
+const webPort = process.env.PORT || 3000;
+
+webApp.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+webApp.get('/health', (req, res) => {
+    res.json({ status: 'online', bot: client.user?.tag, guilds: client.guilds.cache.size });
+});
+
+webApp.listen(webPort, () => {
+    console.log(`✅ Webpagina op poort ${webPort}`);
+});
+
+// ============================================
+// LOGIN - ALLEEN HIER!
+// ============================================
+client.login(TOKEN);
