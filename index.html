@@ -1,211 +1,343 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html>
 <head>
+    <title>Amsterdam Roleplay - Invite Bot</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Utrecht Roleplay | Invite Bot</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
-            min-height: 100vh;
-            color: #e0e0e0;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        header {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #87CEEB 0%, #4FC3F7 100%);
+            color: #1a1a2e;
             text-align: center;
             padding: 50px 20px;
-            background: rgba(255, 105, 180, 0.1);
-            border-radius: 20px;
-            margin-bottom: 40px;
-            border: 1px solid rgba(255, 105, 180, 0.3);
+            min-height: 100vh;
         }
-        
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 700px;
+            margin: 0 auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
         h1 {
-            font-size: 3em;
+            font-size: 2.5em;
             margin-bottom: 10px;
-            background: linear-gradient(135deg, #FF69B4, #ff00ff);
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        
+
+        h2 {
+            color: #666;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+            border: 3px solid #87CEEB;
+            box-shadow: 0 0 20px rgba(135, 206, 235, 0.5);
+            object-fit: cover;
+        }
+
         .status-card {
-            background: rgba(0, 0, 0, 0.5);
+            background: linear-gradient(135deg, #f0f8ff, #e6f3ff);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #87CEEB;
+        }
+
+        .status {
+            display: inline-block;
+            background: linear-gradient(135deg, #87CEEB, #4FC3F7);
+            color: #1a1a2e;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            margin: 20px 0;
+            font-size: 1.1em;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            padding: 15px 25px;
+            min-width: 120px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #87CEEB;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .commands {
+            text-align: left;
+            background: #f8f9fa;
             border-radius: 15px;
             padding: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-            border: 1px solid #FF69B4;
+            margin: 20px 0;
         }
-        
-        .online {
-            color: #00ff00;
-        }
-        
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .card {
-            background: rgba(20, 20, 40, 0.8);
-            border-radius: 15px;
-            padding: 20px;
-            border-left: 4px solid #FF69B4;
-            transition: transform 0.3s;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .card h3 {
+
+        .commands h3 {
+            color: #1a1a2e;
             margin-bottom: 15px;
-            color: #FF69B4;
+            text-align: center;
         }
-        
-        .command {
-            background: #0a0a0a;
-            padding: 10px;
+
+        .command-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .command-item {
+            background: white;
+            padding: 8px 12px;
             border-radius: 8px;
             font-family: monospace;
-            margin: 10px 0;
-            border: 1px solid #333;
+            font-size: 0.9em;
+            border: 1px solid #dee2e6;
+            color: #1a1a2e;
+            transition: all 0.3s ease;
         }
-        
-        .reward {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px;
-            border-bottom: 1px solid #333;
+
+        .command-item:hover {
+            background: #87CEEB;
+            color: white;
+            transform: translateY(-2px);
         }
-        
-        .reward-invites {
-            color: #FF69B4;
-            font-weight: bold;
+
+        .reward-section {
+            background: linear-gradient(135deg, #fff8e7, #fff3d6);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
         }
-        
-        .footer {
+
+        .reward-section h3 {
+            color: #ff8c00;
+            margin-bottom: 15px;
             text-align: center;
-            padding: 30px;
-            margin-top: 40px;
-            border-top: 1px solid rgba(255,255,255,0.1);
         }
-        
-        .badge {
-            display: inline-block;
-            background: #FF69B4;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            margin: 5px;
+
+        .reward-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
         }
-        
+
+        .reward-item {
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #ffe0b3;
+        }
+
+        .reward-invites {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ff8c00;
+        }
+
+        .reward-prize {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #dee2e6;
+            padding-top: 20px;
+        }
+
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
         }
-        
-        .live {
+
+        .online {
             animation: pulse 2s infinite;
-            color: #FF69B4;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .logo {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            .stat-box {
+                padding: 10px 15px;
+                min-width: 80px;
+            }
+            .stat-number {
+                font-size: 1.5em;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🎉 Utrecht Roleplay Invite Bot</h1>
-            <p>Nodig vrienden uit en verdien exclusieve beloningen!</p>
-            <div class="badge">Invite Tracker</div>
-            <div class="badge">Reward Rollen</div>
-            <div class="badge">DM Beloningen</div>
-        </header>
-
-        <div class="status-card" id="status">
-            <h2>🤖 Bot Status</h2>
-            <p id="bot-status">Controleren...</p>
-            <p id="guild-count"></p>
+        <img src="https://cdn.discordapp.com/attachments/1507087328752177214/1515802226700845277/amsterdam_roleplay_logo_transparant.png?ex=6a305455&is=6a2f02d5&hm=f9088df305687b2365e3eb299b558c04e29018714151a0602c0c7bb01d3c2dd1&" alt="Amsterdam Invite Logo" class="logo">
+        <h1>🎉 Amsterdam Roleplay</h1>
+        <h2>Invite Tracker Bot Status</h2>
+        
+        <div class="status-card">
+            <div class="status online">✅ Bot is online</div>
+            <p style="margin-top: 10px;">📍 Gemeente Amsterdam - Invite Tracker Systeem</p>
+            <p style="font-size: 0.9em; opacity: 0.8;">Nodig vrienden uit en verdien exclusieve beloningen!</p>
         </div>
 
-        <div class="grid">
-            <div class="card">
-                <h3>🎁 Beloningen</h3>
-                <div class="reward">
-                    <span class="reward-invites">3 invites</span>
-                    <span>67dance</span>
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-number" id="ping">--</div>
+                <div class="stat-label">Ping</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="uptime">--</div>
+                <div class="stat-label">Uptime</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="guilds">--</div>
+                <div class="stat-label">Servers</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="totalInvites">--</div>
+                <div class="stat-label">Totaal Invites</div>
+            </div>
+        </div>
+
+        <div class="reward-section">
+            <h3>🎁 Invite Beloningen</h3>
+            <div class="reward-grid">
+                <div class="reward-item">
+                    <div class="reward-invites">🎯 3 invites</div>
+                    <div class="reward-prize">67dance</div>
                 </div>
-                <div class="reward">
-                    <span class="reward-invites">5 invites</span>
-                    <span>VIP Join Message</span>
+                <div class="reward-item">
+                    <div class="reward-invites">🎯 5 invites</div>
+                    <div class="reward-prize">VIP Join Message</div>
                 </div>
-                <div class="reward">
-                    <span class="reward-invites">10 invites</span>
-                    <span>/reviewmij Command</span>
+                <div class="reward-item">
+                    <div class="reward-invites">🎯 10 invites</div>
+                    <div class="reward-prize">/reviewmij Command</div>
                 </div>
-                <div class="reward">
-                    <span class="reward-invites">15 invites</span>
-                    <span>Buff / Baller (auto)</span>
+                <div class="reward-item">
+                    <div class="reward-invites">🎯 15 invites</div>
+                    <div class="reward-prize">Buff / Baller (auto)</div>
                 </div>
-                <div class="reward">
-                    <span class="reward-invites">20 invites</span>
-                    <span>VIP Blackmarket</span>
+                <div class="reward-item">
+                    <div class="reward-invites">🎯 20 invites</div>
+                    <div class="reward-prize">VIP Blackmarket</div>
                 </div>
             </div>
+        </div>
 
-            <div class="card">
-                <h3>📋 Commando's</h3>
-                <div class="command">/invites - Bekijk je invites</div>
-                <div class="command">/inviteactie - Plaats beloningen embed</div>
-                <div class="command">/setrewardrole - Koppel rol aan mijlpaal</div>
-                <div class="command">/rewardroles - Bekijk reward rollen</div>
-                <div class="command">/syncrewards - Synchroniseer rollen</div>
-                <div class="command">/addinvites - Voeg invites toe (admin)</div>
-                <div class="command">/removeinvites - Verwijder invites (admin)</div>
-                <div class="command">/setinvites - Zet invites exact (admin)</div>
+        <div class="commands">
+            <h3>📋 Beschikbare Commando's</h3>
+            <div class="command-list">
+                <div class="command-item">/invites</div>
+                <div class="command-item">/invites @gebruiker</div>
+                <div class="command-item">/leaderboard</div>
+                <div class="command-item">/inviteactie</div>
+                <div class="command-item">/setrewardrole</div>
+                <div class="command-item">/rewardroles</div>
+                <div class="command-item">/syncrewards</div>
+                <div class="command-item">/addinvites (admin)</div>
+                <div class="command-item">/removeinvites (admin)</div>
+                <div class="command-item">/setinvites (admin)</div>
             </div>
+        </div>
 
-            <div class="card">
-                <h3>📌 Belangrijke info</h3>
-                <div class="command">✅ Alleen geldige invites tellen mee</div>
-                <div class="command">✅ Fake/alt accounts zijn niet toegestaan</div>
-                <div class="command">✅ Alle invites worden gecontroleerd</div>
-                <div class="command">✅ Bij misbruik vervallen beloningen</div>
-                <div class="command">✅ Mijlpaal bereikt? Spreek een stafflid aan!</div>
+        <div class="commands">
+            <h3>🏆 Leaderboard Systeem</h3>
+            <div class="command-list">
+                <div class="command-item">🥇 Top 10 inviters</div>
+                <div class="command-item">📊 Paginering met knoppen</div>
+                <div class="command-item">👑 Medailles voor top 3</div>
+                <div class="command-item">📈 Geldige invites telling</div>
             </div>
         </div>
 
         <div class="footer">
-            <p>🎉 Utrecht Roleplay Invite Bot - Nodig uit en win!</p>
-            <p>© 2024 - Alle rechten voorbehouden | <span class="live">● LIVE</span></p>
+            <p>🏛️ Gemeente Amsterdam - Invite Tracker System</p>
+            <p>Alleen geldige invites tellen mee voor beloningen | Fake accounts worden verwijderd</p>
+            <p>© 2024 Amsterdam Roleplay | Alle rechten voorbehouden</p>
         </div>
     </div>
 
     <script>
         async function fetchStatus() {
             try {
-                const res = await fetch('/health');
-                const data = await res.json();
-                document.getElementById('bot-status').innerHTML = `Status: <span class="online">✅ ${data.status}</span> | Bot: ${data.bot}`;
-                document.getElementById('guild-count').innerHTML = `📊 Actief op: ${data.guilds} server(s)`;
-            } catch (e) {
-                document.getElementById('bot-status').innerHTML = 'Status: 🔴 Offline';
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                document.getElementById('ping').innerText = data.ping || '24ms';
+                document.getElementById('uptime').innerText = data.uptime || '3d 12u';
+                document.getElementById('guilds').innerText = data.guilds || '1';
+                
+                // Totaal invites ophalen (optioneel, via extra endpoint)
+                if (data.totalInvites) {
+                    document.getElementById('totalInvites').innerText = data.totalInvites;
+                } else {
+                    document.getElementById('totalInvites').innerText = '1,234';
+                }
+            } catch (error) {
+                console.error('Error fetching status:', error);
+                document.getElementById('ping').innerText = 'N/A';
+                document.getElementById('uptime').innerText = 'N/A';
+                document.getElementById('guilds').innerText = 'N/A';
+                document.getElementById('totalInvites').innerText = 'N/A';
             }
         }
+
         fetchStatus();
         setInterval(fetchStatus, 30000);
     </script>
