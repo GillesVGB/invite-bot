@@ -1139,7 +1139,7 @@ webApp.get('/', (req, res) => {
             <div class="footer">
                 <p>🏛️ Gemeente Amsterdam - Invite Tracker System</p>
                 <p>Alleen geldige invites tellen mee voor beloningen | Fake accounts worden verwijderd</p>
-                <p>© 2024 Amsterdam Roleplay | Alle rechten voorbehouden</p>
+                <p>© 2026 Amsterdam Roleplay | Alle rechten voorbehouden</p>
             </div>
         </div>
         <script>
