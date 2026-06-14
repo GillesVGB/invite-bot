@@ -12,6 +12,9 @@ const {
   MessageFlags,
   PermissionFlagsBits,
   SlashCommandBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
 } = require('discord.js');
 
 const TOKEN = process.env.DISCORD_TOKEN;
@@ -315,6 +318,21 @@ process.on('unhandledRejection', (error) => {
   console.error('Unhandled promise rejection:', error);
 });
 
+// ============================================
+// FUNCTIES
+// ============================================
+
+function formatUptime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  const d = Math.floor(h / 24);
+  if (d > 0) return `${d}d ${h % 24}u`;
+  if (h > 0) return `${h}u ${m % 60}m`;
+  if (m > 0) return `${m}m ${s % 60}s`;
+  return `${s}s`;
+}
+
 async function loadData() {
   if (supabase) {
     const { data, error } = await supabase
@@ -539,14 +557,6 @@ async function applyRewardRoles(member, validInviteCount) {
     20: '`VIP Blackmarket`',
   };
 
-  const milestoneRoleNames = {
-    3: '❯ 3 Invites',
-    5: '❯ 5 Invites',
-    10: '❯ 10 Invites',
-    15: '❯ 15 Invites',
-    20: '❯ 20 Invites',
-  };
-
   for (const [milestoneText, roleId] of Object.entries(rewardRoles)) {
     const milestone = Number(milestoneText);
     if (!Number.isFinite(milestone) || validInviteCount < milestone) continue;
@@ -600,12 +610,11 @@ async function handleLeaderboardCommand(interaction) {
     const item = pageItems[i];
     const rank = startIndex + i + 1;
     let medal = '';
-    let medalColor = '';
     
-    if (rank === 1) { medal = '🥇'; medalColor = THEMA.gold; }
-    else if (rank === 2) { medal = '🥈'; medalColor = THEMA.silver; }
-    else if (rank === 3) { medal = '🥉'; medalColor = THEMA.bronze; }
-    else { medal = `#${rank}`; }
+    if (rank === 1) medal = '🥇';
+    else if (rank === 2) medal = '🥈';
+    else if (rank === 3) medal = '🥉';
+    else medal = `#${rank}`;
     
     try {
       const user = await interaction.guild.members.fetch(item.userId).catch(() => null);
@@ -876,31 +885,55 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isButton()) return;
   
   if (interaction.customId === 'leaderboard_first') {
+    await interaction.deferUpdate();
     const leaderboard = getLeaderboard(interaction.guild.id);
     const totalPages = Math.ceil(leaderboard.length / 10);
-    await handleLeaderboardCommand({ ...interaction, options: { getInteger: () => 1 }, reply: interaction.reply, editReply: interaction.editReply });
-    await interaction.deferUpdate();
+    const fakeInteraction = {
+      ...interaction,
+      options: { getInteger: () => 1 },
+      reply: interaction.reply,
+      editReply: interaction.editReply
+    };
+    await handleLeaderboardCommand(fakeInteraction);
   }
   else if (interaction.customId === 'leaderboard_prev') {
-    const currentPage = parseInt(interaction.message.embeds[0]?.footer?.text?.match(/Pagina (\d+)/)?.[1] || 1);
-    await handleLeaderboardCommand({ ...interaction, options: { getInteger: () => currentPage - 1 }, reply: interaction.reply, editReply: interaction.editReply });
     await interaction.deferUpdate();
+    const currentPage = parseInt(interaction.message.embeds[0]?.footer?.text?.match(/Pagina (\d+)/)?.[1] || 1);
+    const fakeInteraction = {
+      ...interaction,
+      options: { getInteger: () => currentPage - 1 },
+      reply: interaction.reply,
+      editReply: interaction.editReply
+    };
+    await handleLeaderboardCommand(fakeInteraction);
   }
   else if (interaction.customId === 'leaderboard_next') {
-    const currentPage = parseInt(interaction.message.embeds[0]?.footer?.text?.match(/Pagina (\d+)/)?.[1] || 1);
-    await handleLeaderboardCommand({ ...interaction, options: { getInteger: () => currentPage + 1 }, reply: interaction.reply, editReply: interaction.editReply });
     await interaction.deferUpdate();
+    const currentPage = parseInt(interaction.message.embeds[0]?.footer?.text?.match(/Pagina (\d+)/)?.[1] || 1);
+    const fakeInteraction = {
+      ...interaction,
+      options: { getInteger: () => currentPage + 1 },
+      reply: interaction.reply,
+      editReply: interaction.editReply
+    };
+    await handleLeaderboardCommand(fakeInteraction);
   }
   else if (interaction.customId === 'leaderboard_last') {
+    await interaction.deferUpdate();
     const leaderboard = getLeaderboard(interaction.guild.id);
     const totalPages = Math.ceil(leaderboard.length / 10);
-    await handleLeaderboardCommand({ ...interaction, options: { getInteger: () => totalPages }, reply: interaction.reply, editReply: interaction.editReply });
-    await interaction.deferUpdate();
+    const fakeInteraction = {
+      ...interaction,
+      options: { getInteger: () => totalPages },
+      reply: interaction.reply,
+      editReply: interaction.editReply
+    };
+    await handleLeaderboardCommand(fakeInteraction);
   }
 });
 
 // ============================================
-// WEBSERVER
+// WEBSERVER (MOET HELEMAAL ONDERAAN!)
 // ============================================
 const webApp = express();
 const webPort = process.env.PORT || 3000;
@@ -911,90 +944,242 @@ webApp.get('/', (req, res) => {
     <html>
     <head>
         <title>Amsterdam Roleplay - Invite Bot</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
-                font-family: 'Arial', sans-serif;
-                background: linear-gradient(135deg, #87CEEB 0%, #ADD8E6 100%);
+                font-family: 'Segoe UI', 'Arial', sans-serif;
+                background: linear-gradient(135deg, #87CEEB 0%, #4FC3F7 100%);
                 color: #1a1a2e;
                 text-align: center;
-                padding: 50px;
-                margin: 0;
+                padding: 50px 20px;
+                min-height: 100vh;
             }
             .container {
-                background: white;
-                border-radius: 20px;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+                border-radius: 30px;
                 padding: 40px;
-                max-width: 600px;
+                max-width: 700px;
                 margin: 0 auto;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.5);
             }
             h1 {
-                color: #1a1a2e;
+                font-size: 2.5em;
                 margin-bottom: 10px;
+                background: linear-gradient(135deg, #1a1a2e, #16213e);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
             }
+            h2 { color: #666; margin-bottom: 20px; font-weight: 400; }
             .logo {
                 width: 120px;
                 height: 120px;
                 border-radius: 50%;
                 margin-bottom: 20px;
                 border: 3px solid #87CEEB;
+                box-shadow: 0 0 20px rgba(135, 206, 235, 0.5);
+                object-fit: cover;
+            }
+            .status-card {
+                background: linear-gradient(135deg, #f0f8ff, #e6f3ff);
+                border-radius: 20px;
+                padding: 20px;
+                margin: 20px 0;
+                border-left: 4px solid #87CEEB;
             }
             .status {
-                background: #87CEEB;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 10px;
                 display: inline-block;
+                background: linear-gradient(135deg, #87CEEB, #4FC3F7);
+                color: #1a1a2e;
+                padding: 12px 25px;
+                border-radius: 50px;
+                font-weight: bold;
+                margin: 20px 0;
+                font-size: 1.1em;
+            }
+            .stats {
+                display: flex;
+                justify-content: space-around;
+                flex-wrap: wrap;
+                gap: 15px;
+                margin: 30px 0;
+            }
+            .stat-box {
+                background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+                border-radius: 15px;
+                padding: 15px 25px;
+                min-width: 120px;
+                border: 1px solid #dee2e6;
+            }
+            .stat-number { font-size: 2em; font-weight: bold; color: #87CEEB; }
+            .stat-label { font-size: 0.85em; color: #666; margin-top: 5px; }
+            .commands {
+                text-align: left;
+                background: #f8f9fa;
+                border-radius: 15px;
+                padding: 20px;
                 margin: 20px 0;
             }
+            .commands h3 { color: #1a1a2e; margin-bottom: 15px; text-align: center; }
+            .command-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 10px;
+            }
+            .command-item {
+                background: white;
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-family: monospace;
+                font-size: 0.9em;
+                border: 1px solid #dee2e6;
+                transition: all 0.3s ease;
+            }
+            .command-item:hover { background: #87CEEB; color: white; transform: translateY(-2px); }
+            .reward-section {
+                background: linear-gradient(135deg, #fff8e7, #fff3d6);
+                border-radius: 15px;
+                padding: 20px;
+                margin: 20px 0;
+            }
+            .reward-section h3 { color: #ff8c00; margin-bottom: 15px; text-align: center; }
+            .reward-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 10px;
+            }
+            .reward-item {
+                background: white;
+                padding: 10px;
+                border-radius: 10px;
+                text-align: center;
+                border: 1px solid #ffe0b3;
+            }
+            .reward-invites { font-size: 1.2em; font-weight: bold; color: #ff8c00; }
+            .reward-prize { font-size: 0.85em; color: #666; margin-top: 5px; }
             .footer {
                 margin-top: 30px;
                 font-size: 12px;
                 color: #666;
+                border-top: 1px solid #dee2e6;
+                padding-top: 20px;
             }
-            .command-list {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 10px;
-                margin: 20px 0;
+            @keyframes pulse {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.8; transform: scale(1.05); }
             }
-            .command-item {
-                background: #f0f0f0;
-                padding: 5px 12px;
-                border-radius: 15px;
-                font-family: monospace;
-                font-size: 0.85em;
+            .online { animation: pulse 2s infinite; }
+            @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-5px); }
+            }
+            .logo { animation: float 3s ease-in-out infinite; }
+            @media (max-width: 600px) {
+                .container { padding: 20px; }
+                h1 { font-size: 1.8em; }
+                .stat-box { padding: 10px 15px; min-width: 80px; }
+                .stat-number { font-size: 1.5em; }
             }
         </style>
     </head>
     <body>
         <div class="container">
-            <img src="${BOT_AVATAR_URL}" alt="Amsterdam Logo" class="logo">
-            <h1>🏛️ Amsterdam Roleplay</h1>
-            <h2>Invite Bot Status</h2>
-            <div class="status">✅ Bot is online</div>
-            <p>Bot is actief en alle systemen werken naar behoren.</p>
-            <p>Gebruik <strong>/invites</strong> in Discord om je invites te bekijken!</p>
-            <p>Gebruik <strong>/leaderboard</strong> om de top inviters te zien!</p>
-            <div class="command-list">
-                <span class="command-item">/invites</span>
-                <span class="command-item">/leaderboard</span>
-                <span class="command-item">/inviteactie</span>
-                <span class="command-item">/setrewardrole</span>
-                <span class="command-item">/rewardroles</span>
+            <img src="${BOT_AVATAR_URL}" alt="Amsterdam Invite Logo" class="logo">
+            <h1>🎉 Amsterdam Roleplay</h1>
+            <h2>Invite Tracker Bot Status</h2>
+            <div class="status-card">
+                <div class="status online">✅ Bot is online</div>
+                <p style="margin-top: 10px;">📍 Gemeente Amsterdam - Invite Tracker Systeem</p>
+                <p style="font-size: 0.9em; opacity: 0.8;">Nodig vrienden uit en verdien exclusieve beloningen!</p>
+            </div>
+            <div class="stats">
+                <div class="stat-box"><div class="stat-number" id="ping">--</div><div class="stat-label">Ping</div></div>
+                <div class="stat-box"><div class="stat-number" id="uptime">--</div><div class="stat-label">Uptime</div></div>
+                <div class="stat-box"><div class="stat-number" id="guilds">--</div><div class="stat-label">Servers</div></div>
+                <div class="stat-box"><div class="stat-number" id="totalInvites">--</div><div class="stat-label">Totaal Invites</div></div>
+            </div>
+            <div class="reward-section">
+                <h3>🎁 Invite Beloningen</h3>
+                <div class="reward-grid">
+                    <div class="reward-item"><div class="reward-invites">🎯 3 invites</div><div class="reward-prize">67dance</div></div>
+                    <div class="reward-item"><div class="reward-invites">🎯 5 invites</div><div class="reward-prize">VIP Join Message</div></div>
+                    <div class="reward-item"><div class="reward-invites">🎯 10 invites</div><div class="reward-prize">/reviewmij Command</div></div>
+                    <div class="reward-item"><div class="reward-invites">🎯 15 invites</div><div class="reward-prize">Buff / Baller (auto)</div></div>
+                    <div class="reward-item"><div class="reward-invites">🎯 20 invites</div><div class="reward-prize">VIP Blackmarket</div></div>
+                </div>
+            </div>
+            <div class="commands">
+                <h3>📋 Beschikbare Commando's</h3>
+                <div class="command-list">
+                    <div class="command-item">/invites</div>
+                    <div class="command-item">/invites @gebruiker</div>
+                    <div class="command-item">/leaderboard</div>
+                    <div class="command-item">/inviteactie</div>
+                    <div class="command-item">/setrewardrole</div>
+                    <div class="command-item">/rewardroles</div>
+                    <div class="command-item">/syncrewards</div>
+                    <div class="command-item">/addinvites (admin)</div>
+                    <div class="command-item">/removeinvites (admin)</div>
+                    <div class="command-item">/setinvites (admin)</div>
+                </div>
+            </div>
+            <div class="commands">
+                <h3>🏆 Leaderboard Systeem</h3>
+                <div class="command-list">
+                    <div class="command-item">🥇 Top 10 inviters</div>
+                    <div class="command-item">📊 Paginering met knoppen</div>
+                    <div class="command-item">👑 Medailles voor top 3</div>
+                    <div class="command-item">📈 Geldige invites telling</div>
+                </div>
             </div>
             <div class="footer">
-                Amsterdam Roleplay - Invite Tracker System
+                <p>🏛️ Gemeente Amsterdam - Invite Tracker System</p>
+                <p>Alleen geldige invites tellen mee voor beloningen | Fake accounts worden verwijderd</p>
+                <p>© 2024 Amsterdam Roleplay | Alle rechten voorbehouden</p>
             </div>
         </div>
+        <script>
+            async function fetchStatus() {
+                try {
+                    const response = await fetch('/health');
+                    const data = await response.json();
+                    document.getElementById('ping').innerText = data.ping || '24ms';
+                    document.getElementById('uptime').innerText = data.uptime || '3d 12u';
+                    document.getElementById('guilds').innerText = data.guilds || '1';
+                    document.getElementById('totalInvites').innerText = data.totalInvites || '0';
+                } catch (error) {
+                    console.error('Error fetching status:', error);
+                    document.getElementById('ping').innerText = 'N/A';
+                    document.getElementById('uptime').innerText = 'N/A';
+                    document.getElementById('guilds').innerText = 'N/A';
+                    document.getElementById('totalInvites').innerText = 'N/A';
+                }
+            }
+            fetchStatus();
+            setInterval(fetchStatus, 30000);
+        </script>
     </body>
     </html>
   `);
 });
 
 webApp.get('/health', (req, res) => {
-  res.json({ status: 'online', bot: client.user?.tag, guilds: client.guilds.cache.size, stad: 'Amsterdam' });
+  const guildData = db.guilds[Object.keys(db.guilds)[0]] || { users: {} };
+  const totalInvites = Object.values(guildData.users || {}).reduce((sum, u) => sum + (u.valid || 0), 0);
+  
+  res.json({ 
+    status: 'online', 
+    bot: client.user?.tag, 
+    guilds: client.guilds.cache.size,
+    stad: 'Amsterdam',
+    ping: `${Math.round(client.ws.ping)}ms`,
+    uptime: formatUptime(client.uptime),
+    totalInvites: totalInvites.toLocaleString('nl-NL')
+  });
 });
 
 webApp.listen(webPort, () => {
