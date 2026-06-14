@@ -32,18 +32,20 @@ if (!TOKEN) {
 
 // Amsterdam thema kleuren
 const THEMA = {
-  primary: 0x87CEEB,    // Lichtblauw
-  secondary: 0xADD8E6,  // Lichter blauw
-  success: 0x00CED1,    // Turkoois
-  error: 0xFF6B6B,      // Zacht rood
-  warning: 0xFFD700,    // Goud
-  info: 0x4FC3F7,       // Helder blauw
-  white: 0xFFFFFF,      // Wit
-  accent: 0xB0E0E6,     // Poederblauw
-  pink: 0xFF69B4         // Roze voor feestelijke berichten
+  primary: 0x87CEEB,
+  secondary: 0xADD8E6,
+  success: 0x00CED1,
+  error: 0xFF6B6B,
+  warning: 0xFFD700,
+  info: 0x4FC3F7,
+  white: 0xFFFFFF,
+  accent: 0xB0E0E6,
+  pink: 0xFF69B4,
+  gold: 0xFFD700,
+  silver: 0xC0C0C0,
+  bronze: 0xCD7F32
 };
 
-// Amsterdam avatar URL
 const BOT_AVATAR_URL = "https://cdn.discordapp.com/attachments/1507087328752177214/1515802226700845277/amsterdam_roleplay_logo_transparant.png?ex=6a305455&is=6a2f02d5&hm=f9088df305687b2365e3eb299b558c04e29018714151a0602c0c7bb01d3c2dd1&";
 
 const supabase =
@@ -84,6 +86,17 @@ const commands = [
         .setName('channel')
         .setDescription('Kanaal waar de embed geplaatst moet worden.')
         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+        .setRequired(false),
+    ),
+  new SlashCommandBuilder()
+    .setName('leaderboard')
+    .setDescription('Bekijk de top 10 inviters van Amsterdam!')
+    .addIntegerOption((option) =>
+      option
+        .setName('page')
+        .setDescription('Pagina nummer (1-10)')
+        .setMinValue(1)
+        .setMaxValue(10)
         .setRequired(false),
     ),
   new SlashCommandBuilder()
@@ -226,7 +239,6 @@ client.on(Events.InviteCreate, (invite) => {
 client.on(Events.InviteDelete, (invite) => {
   const guildInvites = inviteCache.get(invite.guild.id);
   if (!guildInvites) return;
-
   guildInvites.delete(invite.code);
 });
 
@@ -240,9 +252,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
   inviteCache.set(member.guild.id, after);
 
   if (!usedInvite || !usedInvite.inviterId) {
-    console.log(
-      `[${member.guild.name}] Invite niet gevonden voor ${member.user.tag}.`,
-    );
+    console.log(`[${member.guild.name}] Invite niet gevonden voor ${member.user.tag}.`);
     return;
   }
 
@@ -260,44 +270,40 @@ client.on(Events.GuildMemberAdd, async (member) => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand() || !interaction.guild) return;
-
   await dataReady;
 
   if (interaction.commandName === 'invites') {
     await handleInvitesCommand(interaction);
     return;
   }
-
   if (interaction.commandName === 'inviteactie') {
     await handleInviteActieCommand(interaction);
     return;
   }
-
+  if (interaction.commandName === 'leaderboard') {
+    await handleLeaderboardCommand(interaction);
+    return;
+  }
   if (interaction.commandName === 'setrewardrole') {
     await handleSetRewardRoleCommand(interaction);
     return;
   }
-
   if (interaction.commandName === 'rewardroles') {
     await handleRewardRolesCommand(interaction);
     return;
   }
-
   if (interaction.commandName === 'syncrewards') {
     await handleSyncRewardsCommand(interaction);
     return;
   }
-
   if (interaction.commandName === 'addinvites') {
     await handleAddInvitesCommand(interaction);
     return;
   }
-
   if (interaction.commandName === 'removeinvites') {
     await handleRemoveInvitesCommand(interaction);
     return;
   }
-
   if (interaction.commandName === 'setinvites') {
     await handleSetInvitesCommand(interaction);
   }
@@ -316,7 +322,7 @@ async function loadData() {
       .select('guild_id, data');
 
     if (error) {
-      console.error('Supabase laden mislukt, lokale backup wordt gebruikt:', error);
+      console.error('Supabase laden mislukt:', error);
       loadLocalData();
       return;
     }
@@ -324,11 +330,9 @@ async function loadData() {
     for (const row of data || []) {
       db.guilds[row.guild_id] = normalizeGuildData(row.data);
     }
-
     console.log(`Invite data geladen uit Supabase: ${SUPABASE_TABLE}`);
     return;
   }
-
   loadLocalData();
 }
 
@@ -352,12 +356,9 @@ async function saveGuildData(guildId) {
       },
       { onConflict: 'guild_id' },
     );
-
     if (!error) return;
-
-    console.error('Supabase opslaan mislukt, lokale backup wordt gebruikt:', error);
+    console.error('Supabase opslaan mislukt:', error);
   }
-
   fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
   fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2));
 }
@@ -372,19 +373,13 @@ function normalizeGuildData(data = {}) {
 
 function ensureGuildData(guildId) {
   if (!db.guilds[guildId]) {
-    db.guilds[guildId] = {
-      users: {},
-      joins: {},
-      rewardRoles: {},
-    };
+    db.guilds[guildId] = { users: {}, joins: {}, rewardRoles: {} };
   }
-
   return db.guilds[guildId];
 }
 
 function getUserStats(guildId, userId) {
   const guildData = ensureGuildData(guildId);
-
   if (!guildData.users[userId]) {
     guildData.users[userId] = {
       valid: 0,
@@ -394,22 +389,34 @@ function getUserStats(guildId, userId) {
       lastInviteAt: null,
     };
   }
+  const stats = guildData.users[userId];
+  stats.valid ??= 0;
+  stats.invalid ??= 0;
+  stats.total ??= 0;
+  stats.manual ??= 0;
+  stats.lastInviteAt ??= null;
+  return stats;
+}
 
-  guildData.users[userId].valid ??= 0;
-  guildData.users[userId].invalid ??= 0;
-  guildData.users[userId].total ??= 0;
-  guildData.users[userId].manual ??= 0;
-  guildData.users[userId].lastInviteAt ??= null;
-
-  return guildData.users[userId];
+function getLeaderboard(guildId) {
+  const guildData = ensureGuildData(guildId);
+  const users = Object.entries(guildData.users || {})
+    .map(([userId, stats]) => ({
+      userId,
+      valid: stats.valid || 0,
+      total: stats.total || 0,
+    }))
+    .filter(u => u.valid > 0)
+    .sort((a, b) => b.valid - a.valid);
+  return users;
 }
 
 async function registerCommands(guild) {
   try {
     await guild.commands.set(commands);
-    console.log(`[${guild.name}] Slash commands geregistreerd voor Amsterdam.`);
+    console.log(`[${guild.name}] Slash commands geregistreerd.`);
   } catch (error) {
-    console.error(`[${guild.name}] Slash commands registreren mislukt:`, error);
+    console.error(`[${guild.name}] Fout bij registreren:`, error);
   }
 }
 
@@ -421,14 +428,9 @@ async function refreshGuildInvites(guild) {
 async function fetchGuildInvites(guild) {
   try {
     const invites = await guild.invites.fetch();
-    return new Map(
-      invites.map((invite) => [invite.code, inviteToSnapshot(invite)]),
-    );
+    return new Map(invites.map((invite) => [invite.code, inviteToSnapshot(invite)]));
   } catch (error) {
-    console.error(
-      `[${guild.name}] Invites ophalen mislukt. Geef de bot Manage Server permissie.`,
-      error.message,
-    );
+    console.error(`[${guild.name}] Invites ophalen mislukt:`, error.message);
     return inviteCache.get(guild.id) || new Map();
   }
 }
@@ -445,12 +447,8 @@ function inviteToSnapshot(invite) {
 function findUsedInvite(before, after) {
   for (const [code, invite] of after.entries()) {
     const previousUses = before.get(code)?.uses || 0;
-
-    if (invite.uses > previousUses) {
-      return invite;
-    }
+    if (invite.uses > previousUses) return invite;
   }
-
   return null;
 }
 
@@ -458,11 +456,7 @@ async function recordJoin(member, invite) {
   const guildData = ensureGuildData(member.guild.id);
 
   if (guildData.joins[member.id]) {
-    return {
-      counted: false,
-      valid: false,
-      reason: 'member_already_counted',
-    };
+    return { counted: false, valid: false, reason: 'member_already_counted' };
   }
 
   const inviterStats = getUserStats(member.guild.id, invite.inviterId);
@@ -483,18 +477,13 @@ async function recordJoin(member, invite) {
     inviterId: invite.inviterId,
     inviteCode: invite.code,
     valid: isValid,
-    reason: isValid
-      ? 'valid'
-      : `account_younger_than_${MIN_ACCOUNT_AGE_DAYS}_days`,
+    reason: isValid ? 'valid' : `account_younger_than_${MIN_ACCOUNT_AGE_DAYS}_days`,
     joinedAt: new Date().toISOString(),
     accountCreatedAt: member.user.createdAt.toISOString(),
   };
 
   await saveGuildData(member.guild.id);
-
-  console.log(
-    `[${member.guild.name}] ${member.user.tag} joined via ${invite.code} van ${invite.inviterId}. Geldig: ${isValid}.`,
-  );
+  console.log(`[${member.guild.name}] ${member.user.tag} joined via ${invite.code}. Geldig: ${isValid}.`);
 
   return {
     counted: true,
@@ -516,27 +505,21 @@ async function sendMilestoneDM(member, milestone, prize, roleId, roleName) {
   
   const dmEmbed = new EmbedBuilder()
     .setColor(THEMA.pink)
-    .setAuthor({ 
-      name: 'Amsterdam Roleplay',
-      iconURL: BOT_AVATAR_URL
-    })
+    .setAuthor({ name: 'Amsterdam Roleplay', iconURL: BOT_AVATAR_URL })
     .setTitle('🎉 Gefeliciteerd! 🎉')
-    .setDescription(
-      [
-        `**Je hebt zojuist de mijlpaal van ${milestone} invites bereikt in Amsterdam!**`,
-        '',
-        `**Prijs:** ${prize}`,
-        '',
-        `✨ Maak een ticket aan om je prijs te claimen:`,
-        `https://discord.gg/WwbNK2hrFj`,
-      ].join('\n'),
-    )
+    .setDescription([
+      `**Je hebt zojuist de mijlpaal van ${milestone} invites bereikt in Amsterdam!**`,
+      '',
+      `**Prijs:** ${prize}`,
+      '',
+      `✨ Maak een ticket aan om je prijs te claimen!`,
+    ].join('\n'))
     .setFooter({ text: 'Amsterdam Roleplay • Invite Actie', iconURL: BOT_AVATAR_URL })
     .setTimestamp();
 
   try {
     await member.send({ embeds: [dmEmbed] });
-    console.log(`DM gestuurd naar ${member.user.tag} voor ${milestone} invites in Amsterdam`);
+    console.log(`DM gestuurd naar ${member.user.tag} voor ${milestone} invites`);
   } catch (error) {
     console.error(`Kon geen DM sturen naar ${member.user.tag}:`, error.message);
   }
@@ -566,7 +549,6 @@ async function applyRewardRoles(member, validInviteCount) {
 
   for (const [milestoneText, roleId] of Object.entries(rewardRoles)) {
     const milestone = Number(milestoneText);
-
     if (!Number.isFinite(milestone) || validInviteCount < milestone) continue;
     if (member.roles.cache.has(roleId)) continue;
 
@@ -579,19 +561,100 @@ async function applyRewardRoles(member, validInviteCount) {
     try {
       await member.roles.add(role, `Invite reward voor ${milestone} invites in Amsterdam`);
       awarded.push(role.name);
-      
       const prize = milestonePrizes[milestone] || 'Exclusieve beloning';
-      const roleName = milestoneRoleNames[milestone] || role.name;
-      await sendMilestoneDM(member, milestone, prize, roleId, roleName);
-      
+      await sendMilestoneDM(member, milestone, prize, roleId, role.name);
     } catch (error) {
       failed.push(`${role.name}: ${error.message}`);
     }
   }
-
   return { awarded, failed };
 }
 
+// ============================================
+// LEADERBOARD COMMAND
+// ============================================
+async function handleLeaderboardCommand(interaction) {
+  const page = interaction.options.getInteger('page') || 1;
+  const itemsPerPage = 10;
+  const leaderboard = getLeaderboard(interaction.guild.id);
+  
+  if (leaderboard.length === 0) {
+    const embed = new EmbedBuilder()
+      .setColor(THEMA.warning)
+      .setAuthor({ name: 'Amsterdam Roleplay', iconURL: BOT_AVATAR_URL })
+      .setTitle('📊 Invite Leaderboard')
+      .setDescription('Er zijn nog geen geldige invites geregistreerd in Amsterdam!')
+      .setFooter({ text: 'Wees de eerste om vrienden uit te nodigen!', iconURL: BOT_AVATAR_URL })
+      .setTimestamp();
+    return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+  }
+
+  const totalPages = Math.ceil(leaderboard.length / itemsPerPage);
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const pageItems = leaderboard.slice(startIndex, endIndex);
+
+  let description = '';
+  for (let i = 0; i < pageItems.length; i++) {
+    const item = pageItems[i];
+    const rank = startIndex + i + 1;
+    let medal = '';
+    let medalColor = '';
+    
+    if (rank === 1) { medal = '🥇'; medalColor = THEMA.gold; }
+    else if (rank === 2) { medal = '🥈'; medalColor = THEMA.silver; }
+    else if (rank === 3) { medal = '🥉'; medalColor = THEMA.bronze; }
+    else { medal = `#${rank}`; }
+    
+    try {
+      const user = await interaction.guild.members.fetch(item.userId).catch(() => null);
+      const username = user ? user.user.username : `Onbekende Gebruiker (${item.userId.slice(0, 8)}...)`;
+      description += `**${medal}** ${username}\n└ **${item.valid}** geldige invites | **${item.total}** totaal\n\n`;
+    } catch {
+      description += `**${medal}** Onbekende Gebruiker\n└ **${item.valid}** geldige invites\n\n`;
+    }
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(THEMA.primary)
+    .setAuthor({ name: 'Amsterdam Roleplay', iconURL: BOT_AVATAR_URL })
+    .setTitle('🏆 Invite Leaderboard - Amsterdam')
+    .setDescription(description || 'Geen data beschikbaar')
+    .setFooter({ text: `Pagina ${currentPage}/${totalPages} • Totaal ${leaderboard.length} inviters`, iconURL: BOT_AVATAR_URL })
+    .setTimestamp()
+    .setThumbnail(BOT_AVATAR_URL);
+
+  const row = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('leaderboard_first')
+        .setLabel('⏮️ Eerste')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(currentPage === 1),
+      new ButtonBuilder()
+        .setCustomId('leaderboard_prev')
+        .setLabel('◀️ Vorige')
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(currentPage === 1),
+      new ButtonBuilder()
+        .setCustomId('leaderboard_next')
+        .setLabel('Volgende ▶️')
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(currentPage === totalPages),
+      new ButtonBuilder()
+        .setCustomId('leaderboard_last')
+        .setLabel('Laatste ⏭️')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(currentPage === totalPages)
+    );
+
+  await interaction.reply({ embeds: [embed], components: [row] });
+}
+
+// ============================================
+// OVERIGE COMMAND HANDLERS
+// ============================================
 async function handleInvitesCommand(interaction) {
   const user = interaction.options.getUser('user') || interaction.user;
   const stats = getUserStats(interaction.guild.id, user.id);
@@ -616,71 +679,109 @@ async function handleInvitesCommand(interaction) {
     .setFooter({ text: 'Gemeente Amsterdam - Alleen geldige invites tellen mee voor beloningen.', iconURL: BOT_AVATAR_URL })
     .setTimestamp();
 
-  await interaction.reply({
-    embeds: [embed],
-    flags: MessageFlags.Ephemeral,
-  });
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleInviteActieCommand(interaction) {
-  const targetChannel =
-    interaction.options.getChannel('channel') || interaction.channel;
-
+  const targetChannel = interaction.options.getChannel('channel') || interaction.channel;
   if (!targetChannel || !targetChannel.isTextBased()) {
-    await interaction.reply({
+    return interaction.reply({
       content: 'Ik kan de embed alleen in een tekstkanaal plaatsen.',
       flags: MessageFlags.Ephemeral,
     });
-    return;
   }
 
   const embed = new EmbedBuilder()
     .setColor(THEMA.pink)
-    .setAuthor({ 
-        name: 'Amsterdam Roleplay',
-        iconURL: BOT_AVATAR_URL
-    })
+    .setAuthor({ name: 'Amsterdam Roleplay', iconURL: BOT_AVATAR_URL })
     .setTitle('🏛️ Invite Actie - Amsterdam')
-    .setDescription(
-        [
-            'Nodig vrienden uit voor onze Amsterdam Discord-server en verdien **exclusieve beloningen**!',
-            '',
-            `Bekijk je aantal invites in <#${INVITES_CHANNEL_ID}> met **/invites**.`,
-        ].join('\n'),
-    )
+    .setDescription([
+      'Nodig vrienden uit voor onze Amsterdam Discord-server en verdien **exclusieve beloningen**!',
+      '',
+      `Bekijk je aantal invites in <#${INVITES_CHANNEL_ID}> met **/invites**.`,
+    ].join('\n'))
     .setThumbnail(BOT_AVATAR_URL)
     .addFields(
-        { name: '❯ **3 invites**', value: '`67dance`', inline: true },
-        { name: '❯ **5 invites**', value: '`VIP Join Message`', inline: true },
-        { name: '❯ **10 invites**', value: '`/reviewmij Command`', inline: true },
-        { name: '❯ **15 invites**', value: '`Buff / Baller (auto)`', inline: true },
-        { name: '❯ **20 invites**', value: '`VIP Blackmarket`', inline: true },
-        { name: '\u200b', value: '\u200b', inline: true },
-        { name: '\u200b', value: '\n', inline: false },
-        {
-            name: '**📋 Belangrijke informatie**',
-            value: [
-                '• Alleen **geldige invites** tellen mee.',
-                '• **Fake accounts** en **alt-accounts** zijn niet toegestaan.',
-                '• Alle invites worden **gecontroleerd** door het Amsterdam staffteam.',
-                '• Bij **misbruik** vervallen alle behaalde beloningen.',
-                '• Mijlpaal bereikt? Spreek een **stafflid** aan voor verificatie in Amsterdam.',
-            ].join('\n'),
-            inline: false,
-        },
+      { name: '❯ **3 invites**', value: '`67dance`', inline: true },
+      { name: '❯ **5 invites**', value: '`VIP Join Message`', inline: true },
+      { name: '❯ **10 invites**', value: '`/reviewmij Command`', inline: true },
+      { name: '❯ **15 invites**', value: '`Buff / Baller (auto)`', inline: true },
+      { name: '❯ **20 invites**', value: '`VIP Blackmarket`', inline: true },
+      { name: '\u200b', value: '\u200b', inline: true },
+      { name: '\u200b', value: '\n', inline: false },
+      {
+        name: '**📋 Belangrijke informatie**',
+        value: [
+          '• Alleen **geldige invites** tellen mee.',
+          '• **Fake accounts** en **alt-accounts** zijn niet toegestaan.',
+          '• Alle invites worden **gecontroleerd** door het Amsterdam staffteam.',
+          '• Bij **misbruik** vervallen alle behaalde beloningen.',
+          '• Mijlpaal bereikt? Spreek een **stafflid** aan voor verificatie in Amsterdam.',
+        ].join('\n'),
+        inline: false,
+      },
     )
     .setFooter({ text: 'Gemeente Amsterdam - Invite Actie', iconURL: BOT_AVATAR_URL })
     .setTimestamp();
-  
-  await targetChannel.send({
-    embeds: [embed],
-    allowedMentions: { parse: [] },
-  });
 
-  await interaction.reply({
-    content: `✅ Invite Actie embed geplaatst in ${targetChannel} voor Amsterdam!`,
-    flags: MessageFlags.Ephemeral,
-  });
+  await targetChannel.send({ embeds: [embed], allowedMentions: { parse: [] } });
+  await interaction.reply({ content: `✅ Invite Actie embed geplaatst in ${targetChannel} voor Amsterdam!`, flags: MessageFlags.Ephemeral });
+}
+
+async function handleSetRewardRoleCommand(interaction) {
+  const milestone = interaction.options.getInteger('invites', true);
+  const role = interaction.options.getRole('role', true);
+  const botMember = interaction.guild.members.me || await interaction.guild.members.fetchMe().catch(() => null);
+
+  if (role.id === interaction.guild.id || role.managed) {
+    return interaction.reply({ content: 'Deze rol kan ik niet automatisch uitdelen in Amsterdam.', flags: MessageFlags.Ephemeral });
+  }
+  if (botMember && role.comparePositionTo(botMember.roles.highest) >= 0) {
+    return interaction.reply({ content: 'Zet mijn bot-rol hoger dan deze reward-rol in Amsterdam.', flags: MessageFlags.Ephemeral });
+  }
+
+  const guildData = ensureGuildData(interaction.guild.id);
+  guildData.rewardRoles[String(milestone)] = role.id;
+  await saveGuildData(interaction.guild.id);
+  await interaction.reply({ content: `✅ Vanaf **${milestone} geldige invite(s)** krijgt iemand in Amsterdam automatisch ${role}.`, flags: MessageFlags.Ephemeral });
+}
+
+async function handleRewardRolesCommand(interaction) {
+  const guildData = ensureGuildData(interaction.guild.id);
+  const rewardRoles = Object.entries(guildData.rewardRoles || {}).sort(([a], [b]) => Number(a) - Number(b));
+  const description = rewardRoles.length
+    ? rewardRoles.map(([milestone, roleId]) => `**${milestone} invites** -> <@&${roleId}>`).join('\n')
+    : 'Er zijn nog geen reward-rollen ingesteld in Amsterdam. Gebruik `/setrewardrole`.';
+
+  const embed = new EmbedBuilder()
+    .setColor(THEMA.info)
+    .setAuthor({ name: '🏛️ Amsterdam Invite reward-rollen', iconURL: BOT_AVATAR_URL })
+    .setTitle('🎁 Reward Rollen Amsterdam')
+    .setDescription(description)
+    .setFooter({ text: 'Gemeente Amsterdam', iconURL: BOT_AVATAR_URL });
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+}
+
+async function handleSyncRewardsCommand(interaction) {
+  const guildData = ensureGuildData(interaction.guild.id);
+  const rewardRoles = guildData.rewardRoles || {};
+  if (!Object.keys(rewardRoles).length) {
+    return interaction.reply({ content: 'Er zijn nog geen reward-rollen ingesteld in Amsterdam.', flags: MessageFlags.Ephemeral });
+  }
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  let checked = 0, awarded = 0, failed = 0;
+
+  for (const [userId, stats] of Object.entries(guildData.users || {})) {
+    if (!stats.valid) continue;
+    const member = await interaction.guild.members.fetch(userId).catch(() => null);
+    if (!member) continue;
+    checked += 1;
+    const result = await applyRewardRoles(member, stats.valid);
+    awarded += result.awarded.length;
+    failed += result.failed.length;
+  }
+  await interaction.editReply(`🏛️ Amsterdam - Rewards gesynchroniseerd. Gecontroleerd: **${checked}**, rollen gegeven: **${awarded}**, mislukt: **${failed}**.`);
 }
 
 async function handleAddInvitesCommand(interaction) {
@@ -692,26 +793,24 @@ async function handleAddInvitesCommand(interaction) {
   stats.valid += amount;
   stats.manual += amount;
   stats.lastInviteAt = new Date().toISOString();
-
   await saveGuildData(interaction.guild.id);
 
   const member = await interaction.guild.members.fetch(user.id).catch(() => null);
-  if (member) {
-    await applyRewardRoles(member, stats.valid);
-  }
+  if (member) await applyRewardRoles(member, stats.valid);
 
-  await interaction.reply({
-    embeds: [
-      buildAdminEmbed(
-        'Invites toegevoegd in Amsterdam',
-        user,
-        `**+${amount}** geldige invite(s) toegevoegd.`,
-        stats,
-        reason,
-      ),
-    ],
-    flags: MessageFlags.Ephemeral,
-  });
+  const embed = new EmbedBuilder()
+    .setColor(THEMA.warning)
+    .setAuthor({ name: '🏛️ Amsterdam Invite Beheer', iconURL: BOT_AVATAR_URL })
+    .setTitle('Invites toegevoegd in Amsterdam')
+    .setDescription(`${user}\n**+${amount}** geldige invite(s) toegevoegd.`)
+    .addFields(
+      { name: '📊 Nieuw totaal', value: String(stats.valid), inline: true },
+      { name: '✏️ Handmatig', value: String(stats.manual || 0), inline: true },
+      { name: '📝 Reden', value: reason, inline: false },
+    )
+    .setFooter({ text: 'Gemeente Amsterdam', iconURL: BOT_AVATAR_URL })
+    .setTimestamp();
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleRemoveInvitesCommand(interaction) {
@@ -723,21 +822,21 @@ async function handleRemoveInvitesCommand(interaction) {
 
   stats.valid -= removed;
   stats.manual = Math.max(0, stats.manual - removed);
-
   await saveGuildData(interaction.guild.id);
 
-  await interaction.reply({
-    embeds: [
-      buildAdminEmbed(
-        'Invites verwijderd in Amsterdam',
-        user,
-        `**-${removed}** geldige invite(s) verwijderd.`,
-        stats,
-        reason,
-      ),
-    ],
-    flags: MessageFlags.Ephemeral,
-  });
+  const embed = new EmbedBuilder()
+    .setColor(THEMA.warning)
+    .setAuthor({ name: '🏛️ Amsterdam Invite Beheer', iconURL: BOT_AVATAR_URL })
+    .setTitle('Invites verwijderd in Amsterdam')
+    .setDescription(`${user}\n**-${removed}** geldige invite(s) verwijderd.`)
+    .addFields(
+      { name: '📊 Nieuw totaal', value: String(stats.valid), inline: true },
+      { name: '✏️ Handmatig', value: String(stats.manual || 0), inline: true },
+      { name: '📝 Reden', value: reason, inline: false },
+    )
+    .setFooter({ text: 'Gemeente Amsterdam', iconURL: BOT_AVATAR_URL })
+    .setTimestamp();
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleSetInvitesCommand(interaction) {
@@ -750,34 +849,16 @@ async function handleSetInvitesCommand(interaction) {
   stats.valid = amount;
   stats.manual = Math.max(0, stats.manual + difference);
   stats.lastInviteAt = new Date().toISOString();
-
   await saveGuildData(interaction.guild.id);
 
   const member = await interaction.guild.members.fetch(user.id).catch(() => null);
-  if (member) {
-    await applyRewardRoles(member, stats.valid);
-  }
+  if (member) await applyRewardRoles(member, stats.valid);
 
-  await interaction.reply({
-    embeds: [
-      buildAdminEmbed(
-        'Invites ingesteld in Amsterdam',
-        user,
-        `Geldige invites ingesteld op **${amount}**.`,
-        stats,
-        reason,
-      ),
-    ],
-    flags: MessageFlags.Ephemeral,
-  });
-}
-
-function buildAdminEmbed(title, user, description, stats, reason) {
-  return new EmbedBuilder()
+  const embed = new EmbedBuilder()
     .setColor(THEMA.warning)
     .setAuthor({ name: '🏛️ Amsterdam Invite Beheer', iconURL: BOT_AVATAR_URL })
-    .setTitle(title)
-    .setDescription(`${user}\n${description}`)
+    .setTitle('Invites ingesteld in Amsterdam')
+    .setDescription(`${user}\nGeldige invites ingesteld op **${amount}**.`)
     .addFields(
       { name: '📊 Nieuw totaal', value: String(stats.valid), inline: true },
       { name: '✏️ Handmatig', value: String(stats.manual || 0), inline: true },
@@ -785,104 +866,41 @@ function buildAdminEmbed(title, user, description, stats, reason) {
     )
     .setFooter({ text: 'Gemeente Amsterdam', iconURL: BOT_AVATAR_URL })
     .setTimestamp();
-}
-
-async function handleSetRewardRoleCommand(interaction) {
-  const milestone = interaction.options.getInteger('invites', true);
-  const role = interaction.options.getRole('role', true);
-  const botMember =
-    interaction.guild.members.me ||
-    (await interaction.guild.members.fetchMe().catch(() => null));
-
-  if (role.id === interaction.guild.id || role.managed) {
-    await interaction.reply({
-      content: 'Deze rol kan ik niet automatisch uitdelen in Amsterdam.',
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
-
-  if (botMember && role.comparePositionTo(botMember.roles.highest) >= 0) {
-    await interaction.reply({
-      content:
-        'Zet mijn bot-rol hoger dan deze reward-rol in Amsterdam, anders mag Discord hem niet uitdelen.',
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
-
-  const guildData = ensureGuildData(interaction.guild.id);
-  guildData.rewardRoles[String(milestone)] = role.id;
-  await saveGuildData(interaction.guild.id);
-
-  await interaction.reply({
-    content: `✅ Vanaf **${milestone} geldige invite(s)** krijgt iemand in Amsterdam automatisch ${role}.`,
-    flags: MessageFlags.Ephemeral,
-  });
-}
-
-async function handleRewardRolesCommand(interaction) {
-  const guildData = ensureGuildData(interaction.guild.id);
-  const rewardRoles = Object.entries(guildData.rewardRoles || {}).sort(
-    ([a], [b]) => Number(a) - Number(b),
-  );
-
-  const description = rewardRoles.length
-    ? rewardRoles
-        .map(([milestone, roleId]) => `**${milestone} invites** -> <@&${roleId}>`)
-        .join('\n')
-    : 'Er zijn nog geen reward-rollen ingesteld in Amsterdam. Gebruik `/setrewardrole`.';
-
-  const embed = new EmbedBuilder()
-    .setColor(THEMA.info)
-    .setAuthor({ name: '🏛️ Amsterdam Invite reward-rollen', iconURL: BOT_AVATAR_URL })
-    .setTitle('🎁 Reward Rollen Amsterdam')
-    .setDescription(description)
-    .setFooter({ text: 'Gemeente Amsterdam', iconURL: BOT_AVATAR_URL });
-
-  await interaction.reply({
-    embeds: [embed],
-    flags: MessageFlags.Ephemeral,
-  });
-}
-
-async function handleSyncRewardsCommand(interaction) {
-  const guildData = ensureGuildData(interaction.guild.id);
-  const rewardRoles = guildData.rewardRoles || {};
-
-  if (!Object.keys(rewardRoles).length) {
-    await interaction.reply({
-      content: 'Er zijn nog geen reward-rollen ingesteld in Amsterdam.',
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
-
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-  let checked = 0;
-  let awarded = 0;
-  let failed = 0;
-
-  for (const [userId, stats] of Object.entries(guildData.users || {})) {
-    if (!stats.valid) continue;
-
-    const member = await interaction.guild.members.fetch(userId).catch(() => null);
-    if (!member) continue;
-
-    checked += 1;
-    const result = await applyRewardRoles(member, stats.valid);
-    awarded += result.awarded.length;
-    failed += result.failed.length;
-  }
-
-  await interaction.editReply(
-    `🏛️ Amsterdam - Rewards gesynchroniseerd. Gecontroleerd: **${checked}**, rollen gegeven: **${awarded}**, mislukt: **${failed}**.`,
-  );
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 // ============================================
-// WEBSERVER (Amsterdam thema)
+// BUTTON HANDLER VOOR LEADERBOARD
+// ============================================
+client.on(Events.InteractionCreate, async (interaction) => {
+  if (!interaction.isButton()) return;
+  
+  if (interaction.customId === 'leaderboard_first') {
+    const leaderboard = getLeaderboard(interaction.guild.id);
+    const totalPages = Math.ceil(leaderboard.length / 10);
+    await handleLeaderboardCommand({ ...interaction, options: { getInteger: () => 1 }, reply: interaction.reply, editReply: interaction.editReply });
+    await interaction.deferUpdate();
+  }
+  else if (interaction.customId === 'leaderboard_prev') {
+    const currentPage = parseInt(interaction.message.embeds[0]?.footer?.text?.match(/Pagina (\d+)/)?.[1] || 1);
+    await handleLeaderboardCommand({ ...interaction, options: { getInteger: () => currentPage - 1 }, reply: interaction.reply, editReply: interaction.editReply });
+    await interaction.deferUpdate();
+  }
+  else if (interaction.customId === 'leaderboard_next') {
+    const currentPage = parseInt(interaction.message.embeds[0]?.footer?.text?.match(/Pagina (\d+)/)?.[1] || 1);
+    await handleLeaderboardCommand({ ...interaction, options: { getInteger: () => currentPage + 1 }, reply: interaction.reply, editReply: interaction.editReply });
+    await interaction.deferUpdate();
+  }
+  else if (interaction.customId === 'leaderboard_last') {
+    const leaderboard = getLeaderboard(interaction.guild.id);
+    const totalPages = Math.ceil(leaderboard.length / 10);
+    await handleLeaderboardCommand({ ...interaction, options: { getInteger: () => totalPages }, reply: interaction.reply, editReply: interaction.editReply });
+    await interaction.deferUpdate();
+  }
+});
+
+// ============================================
+// WEBSERVER
 // ============================================
 const webApp = express();
 const webPort = process.env.PORT || 3000;
@@ -934,6 +952,20 @@ webApp.get('/', (req, res) => {
                 font-size: 12px;
                 color: #666;
             }
+            .command-list {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+                margin: 20px 0;
+            }
+            .command-item {
+                background: #f0f0f0;
+                padding: 5px 12px;
+                border-radius: 15px;
+                font-family: monospace;
+                font-size: 0.85em;
+            }
         </style>
     </head>
     <body>
@@ -941,12 +973,17 @@ webApp.get('/', (req, res) => {
             <img src="${BOT_AVATAR_URL}" alt="Amsterdam Logo" class="logo">
             <h1>🏛️ Amsterdam Roleplay</h1>
             <h2>Invite Bot Status</h2>
-            <div class="status">
-                ✅ Bot is online<br>
-                📍 Gemeente Amsterdam
-            </div>
+            <div class="status">✅ Bot is online</div>
             <p>Bot is actief en alle systemen werken naar behoren.</p>
             <p>Gebruik <strong>/invites</strong> in Discord om je invites te bekijken!</p>
+            <p>Gebruik <strong>/leaderboard</strong> om de top inviters te zien!</p>
+            <div class="command-list">
+                <span class="command-item">/invites</span>
+                <span class="command-item">/leaderboard</span>
+                <span class="command-item">/inviteactie</span>
+                <span class="command-item">/setrewardrole</span>
+                <span class="command-item">/rewardroles</span>
+            </div>
             <div class="footer">
                 Amsterdam Roleplay - Invite Tracker System
             </div>
@@ -957,12 +994,7 @@ webApp.get('/', (req, res) => {
 });
 
 webApp.get('/health', (req, res) => {
-  res.json({ 
-    status: 'online', 
-    bot: client.user?.tag, 
-    guilds: client.guilds.cache.size,
-    stad: 'Amsterdam' 
-  });
+  res.json({ status: 'online', bot: client.user?.tag, guilds: client.guilds.cache.size, stad: 'Amsterdam' });
 });
 
 webApp.listen(webPort, () => {
