@@ -30,6 +30,22 @@ if (!TOKEN) {
   process.exit(1);
 }
 
+// Amsterdam thema kleuren
+const THEMA = {
+  primary: 0x87CEEB,    // Lichtblauw
+  secondary: 0xADD8E6,  // Lichter blauw
+  success: 0x00CED1,    // Turkoois
+  error: 0xFF6B6B,      // Zacht rood
+  warning: 0xFFD700,    // Goud
+  info: 0x4FC3F7,       // Helder blauw
+  white: 0xFFFFFF,      // Wit
+  accent: 0xB0E0E6,     // Poederblauw
+  pink: 0xFF69B4         // Roze voor feestelijke berichten
+};
+
+// Amsterdam avatar URL
+const BOT_AVATAR_URL = "https://cdn.discordapp.com/attachments/1507087328752177214/1515802226700845277/amsterdam_roleplay_logo_transparant.png?ex=6a305455&is=6a2f02d5&hm=f9088df305687b2365e3eb299b558c04e29018714151a0602c0c7bb01d3c2dd1&";
+
 const supabase =
   SUPABASE_URL && SUPABASE_KEY
     ? createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -52,7 +68,7 @@ const db = { guilds: {} };
 const commands = [
   new SlashCommandBuilder()
     .setName('invites')
-    .setDescription('Bekijk hoeveel geldige invites iemand heeft.')
+    .setDescription('Bekijk hoeveel geldige invites iemand heeft in Amsterdam.')
     .addUserOption((option) =>
       option
         .setName('user')
@@ -61,7 +77,7 @@ const commands = [
     ),
   new SlashCommandBuilder()
     .setName('inviteactie')
-    .setDescription('Plaats de Invite Actie embed met alle beloningen zonder ping.')
+    .setDescription('Plaats de Invite Actie embed met alle beloningen voor Amsterdam.')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addChannelOption((option) =>
       option
@@ -72,7 +88,7 @@ const commands = [
     ),
   new SlashCommandBuilder()
     .setName('setrewardrole')
-    .setDescription('Koppel een Discord-rol aan een invite-mijlpaal.')
+    .setDescription('Koppel een Discord-rol aan een invite-mijlpaal in Amsterdam.')
     .setDefaultMemberPermissions(
       PermissionFlagsBits.ManageGuild | PermissionFlagsBits.ManageRoles,
     )
@@ -91,17 +107,17 @@ const commands = [
     ),
   new SlashCommandBuilder()
     .setName('rewardroles')
-    .setDescription('Bekijk welke rollen aan invite-mijlpalen gekoppeld zijn.')
+    .setDescription('Bekijk welke rollen aan invite-mijlpalen gekoppeld zijn in Amsterdam.')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   new SlashCommandBuilder()
     .setName('syncrewards')
-    .setDescription('Geef reward-rollen aan leden die ze al behaald hebben.')
+    .setDescription('Geef reward-rollen aan Amsterdamse leden die ze al behaald hebben.')
     .setDefaultMemberPermissions(
       PermissionFlagsBits.ManageGuild | PermissionFlagsBits.ManageRoles,
     ),
   new SlashCommandBuilder()
     .setName('addinvites')
-    .setDescription('Geef handmatig geldige invites aan een speler.')
+    .setDescription('Geef handmatig geldige invites aan een Amsterdamse speler.')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addUserOption((option) =>
       option
@@ -125,7 +141,7 @@ const commands = [
     ),
   new SlashCommandBuilder()
     .setName('removeinvites')
-    .setDescription('Haal handmatig geldige invites weg bij een speler.')
+    .setDescription('Haal handmatig geldige invites weg bij een Amsterdamse speler.')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addUserOption((option) =>
       option
@@ -149,7 +165,7 @@ const commands = [
     ),
   new SlashCommandBuilder()
     .setName('setinvites')
-    .setDescription('Zet het geldige invite-aantal van een speler exact.')
+    .setDescription('Zet het geldige invite-aantal van een Amsterdamse speler exact.')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addUserOption((option) =>
       option
@@ -177,7 +193,17 @@ const dataReady = loadData();
 
 client.once(Events.ClientReady, async () => {
   await dataReady;
-  console.log(`Ingelogd als ${client.user.tag}`);
+  console.log(`🏛️ Bot online! ${client.user.tag}`);
+  console.log(`📍 Gemeente Amsterdam - Invite Tracker`);
+  
+  try {
+    await client.user.setAvatar(BOT_AVATAR_URL);
+    console.log(`✅ Bot avatar geüpdatet naar Amsterdam logo`);
+  } catch (error) {
+    console.log(`Kon avatar niet updaten: ${error.message}`);
+  }
+  
+  client.user.setActivity(`Amsterdam | /invites`, { type: 3 });
 
   for (const guild of client.guilds.cache.values()) {
     await registerCommands(guild);
@@ -381,7 +407,7 @@ function getUserStats(guildId, userId) {
 async function registerCommands(guild) {
   try {
     await guild.commands.set(commands);
-    console.log(`[${guild.name}] Slash commands geregistreerd.`);
+    console.log(`[${guild.name}] Slash commands geregistreerd voor Amsterdam.`);
   } catch (error) {
     console.error(`[${guild.name}] Slash commands registreren mislukt:`, error);
   }
@@ -478,7 +504,6 @@ async function recordJoin(member, invite) {
 }
 
 async function sendMilestoneDM(member, milestone, prize, roleId, roleName) {
-  // Vaste rol-ID's (hardcoded op basis van jouw server)
   const roleIds = {
     3: '1514664828285747290',
     5: '1514664846120189992',
@@ -490,15 +515,15 @@ async function sendMilestoneDM(member, milestone, prize, roleId, roleName) {
   const correctRoleId = roleIds[milestone] || roleId;
   
   const dmEmbed = new EmbedBuilder()
-    .setColor(0xFF69B4)
+    .setColor(THEMA.pink)
     .setAuthor({ 
-      name: 'Utrecht Roleplay',
-      iconURL: 'https://media.discordapp.net/attachments/1509672380627161198/1514660051883917454/90c78069-a2a7-4ab2-866f-bf3d4de1ab89.png'
+      name: 'Amsterdam Roleplay',
+      iconURL: BOT_AVATAR_URL
     })
     .setTitle('🎉 Gefeliciteerd! 🎉')
     .setDescription(
       [
-        `**Je hebt zojuist de mijlpaal van ${milestone} invites bereikt!**`,
+        `**Je hebt zojuist de mijlpaal van ${milestone} invites bereikt in Amsterdam!**`,
         '',
         `**Prijs:** ${prize}`,
         '',
@@ -506,18 +531,17 @@ async function sendMilestoneDM(member, milestone, prize, roleId, roleName) {
         `https://discord.gg/WwbNK2hrFj`,
       ].join('\n'),
     )
-    .setFooter({ text: 'Utrecht Roleplay • Invite Actie' })
+    .setFooter({ text: 'Amsterdam Roleplay • Invite Actie', iconURL: BOT_AVATAR_URL })
     .setTimestamp();
 
   try {
     await member.send({ embeds: [dmEmbed] });
-    console.log(`DM gestuurd naar ${member.user.tag} voor ${milestone} invites`);
+    console.log(`DM gestuurd naar ${member.user.tag} voor ${milestone} invites in Amsterdam`);
   } catch (error) {
     console.error(`Kon geen DM sturen naar ${member.user.tag}:`, error.message);
   }
 }
 
-// Dit is de enige applyRewardRoles functie die je nodig hebt (met DM)
 async function applyRewardRoles(member, validInviteCount) {
   const guildData = ensureGuildData(member.guild.id);
   const rewardRoles = guildData.rewardRoles || {};
@@ -553,7 +577,7 @@ async function applyRewardRoles(member, validInviteCount) {
     }
 
     try {
-      await member.roles.add(role, `Invite reward voor ${milestone} invites`);
+      await member.roles.add(role, `Invite reward voor ${milestone} invites in Amsterdam`);
       awarded.push(role.name);
       
       const prize = milestonePrizes[milestone] || 'Exclusieve beloning';
@@ -573,23 +597,23 @@ async function handleInvitesCommand(interaction) {
   const stats = getUserStats(interaction.guild.id, user.id);
   const nextMilestone = rewardMilestones.find((milestone) => stats.valid < milestone);
   const nextText = nextMilestone
-    ? `${nextMilestone - stats.valid} geldige invite(s) tot **${nextMilestone} invites**.`
-    : 'Alle standaard mijlpalen zijn behaald.';
+    ? `${nextMilestone - stats.valid} geldige invite(s) tot **${nextMilestone} invites** in Amsterdam.`
+    : 'Alle standaard mijlpalen zijn behaald in Amsterdam.';
 
   const embed = new EmbedBuilder()
-    .setColor(0x2b8cff)
-    .setAuthor({ name: 'Utrecht Roleplay Invite Tracker' })
-    .setTitle(`Invites van ${user.username}`)
+    .setColor(THEMA.primary)
+    .setAuthor({ name: 'Amsterdam Roleplay Invite Tracker', iconURL: BOT_AVATAR_URL })
+    .setTitle(`🏛️ Invites van ${user.username} in Amsterdam`)
     .setThumbnail(user.displayAvatarURL({ size: 128 }))
-    .setDescription(`${user} staat momenteel op **${stats.valid}** geldige invite(s).`)
+    .setDescription(`${user} staat momenteel op **${stats.valid}** geldige invite(s) in Amsterdam.`)
     .addFields(
-      { name: 'Geldig', value: String(stats.valid), inline: true },
-      { name: 'Gedetecteerd', value: String(stats.total), inline: true },
-      { name: 'Handmatig', value: String(stats.manual || 0), inline: true },
-      { name: 'Ongeldig', value: String(stats.invalid), inline: true },
-      { name: 'Volgende mijlpaal', value: nextText, inline: false },
+      { name: '✅ Geldig', value: String(stats.valid), inline: true },
+      { name: '📊 Gedetecteerd', value: String(stats.total), inline: true },
+      { name: '✏️ Handmatig', value: String(stats.manual || 0), inline: true },
+      { name: '❌ Ongeldig', value: String(stats.invalid), inline: true },
+      { name: '🎯 Volgende mijlpaal', value: nextText, inline: false },
     )
-    .setFooter({ text: 'Alleen geldige invites tellen mee voor beloningen.' })
+    .setFooter({ text: 'Gemeente Amsterdam - Alleen geldige invites tellen mee voor beloningen.', iconURL: BOT_AVATAR_URL })
     .setTimestamp();
 
   await interaction.reply({
@@ -610,49 +634,42 @@ async function handleInviteActieCommand(interaction) {
     return;
   }
 
-const embed = new EmbedBuilder()
-    .setColor(0xFF69B4)
+  const embed = new EmbedBuilder()
+    .setColor(THEMA.pink)
     .setAuthor({ 
-        name: 'Utrecht Roleplay',
-        iconURL: 'https://media.discordapp.net/attachments/1509672380627161198/1514660051883917454/90c78069-a2a7-4ab2-866f-bf3d4de1ab89.png'
+        name: 'Amsterdam Roleplay',
+        iconURL: BOT_AVATAR_URL
     })
-    .setTitle('Invite Actie')
+    .setTitle('🏛️ Invite Actie - Amsterdam')
     .setDescription(
         [
-            'Nodig vrienden uit voor onze Discord-server en verdien **exclusieve beloningen**!',
+            'Nodig vrienden uit voor onze Amsterdam Discord-server en verdien **exclusieve beloningen**!',
             '',
             `Bekijk je aantal invites in <#${INVITES_CHANNEL_ID}> met **/invites**.`,
         ].join('\n'),
     )
-    .setThumbnail('https://media.discordapp.net/attachments/1509672380627161198/1514660051883917454/90c78069-a2a7-4ab2-866f-bf3d4de1ab89.png')
+    .setThumbnail(BOT_AVATAR_URL)
     .addFields(
-        // Rij 1: 3 invites, 5 invites, 10 invites
-        { name: '❯ **3 invites**', value: '67dance', inline: true },
-        { name: '❯ **5 invites**', value: 'VIP Join Message', inline: true },
-        { name: '❯ **10 invites**', value: '/reviewmij\nCommand', inline: true },
-        
-        // Rij 2: 15 invites (onder 3), 20 invites (onder 5), leeg (onder 10)
-        { name: '❯ **15 invites**', value: 'Buff / Baller (auto)', inline: true },
-        { name: '❯ **20 invites**', value: 'VIP Blackmarket', inline: true },
+        { name: '❯ **3 invites**', value: '`67dance`', inline: true },
+        { name: '❯ **5 invites**', value: '`VIP Join Message`', inline: true },
+        { name: '❯ **10 invites**', value: '`/reviewmij Command`', inline: true },
+        { name: '❯ **15 invites**', value: '`Buff / Baller (auto)`', inline: true },
+        { name: '❯ **20 invites**', value: '`VIP Blackmarket`', inline: true },
         { name: '\u200b', value: '\u200b', inline: true },
-        
-        // Kleine regel
         { name: '\u200b', value: '\n', inline: false },
-        
-        // Informatie
         {
-            name: '**Belangrijke informatie**',
+            name: '**📋 Belangrijke informatie**',
             value: [
                 '• Alleen **geldige invites** tellen mee.',
                 '• **Fake accounts** en **alt-accounts** zijn niet toegestaan.',
-                '• Alle invites worden **gecontroleerd** door het staffteam.',
+                '• Alle invites worden **gecontroleerd** door het Amsterdam staffteam.',
                 '• Bij **misbruik** vervallen alle behaalde beloningen.',
-                '• Mijlpaal bereikt? Spreek een **stafflid** aan voor verificatie.',
+                '• Mijlpaal bereikt? Spreek een **stafflid** aan voor verificatie in Amsterdam.',
             ].join('\n'),
             inline: false,
         },
     )
-    .setFooter({ text: 'Utrecht Roleplay Invite Actie' })
+    .setFooter({ text: 'Gemeente Amsterdam - Invite Actie', iconURL: BOT_AVATAR_URL })
     .setTimestamp();
   
   await targetChannel.send({
@@ -661,7 +678,7 @@ const embed = new EmbedBuilder()
   });
 
   await interaction.reply({
-    content: `Invite Actie embed geplaatst in ${targetChannel}.`,
+    content: `✅ Invite Actie embed geplaatst in ${targetChannel} voor Amsterdam!`,
     flags: MessageFlags.Ephemeral,
   });
 }
@@ -686,7 +703,7 @@ async function handleAddInvitesCommand(interaction) {
   await interaction.reply({
     embeds: [
       buildAdminEmbed(
-        'Invites toegevoegd',
+        'Invites toegevoegd in Amsterdam',
         user,
         `**+${amount}** geldige invite(s) toegevoegd.`,
         stats,
@@ -712,7 +729,7 @@ async function handleRemoveInvitesCommand(interaction) {
   await interaction.reply({
     embeds: [
       buildAdminEmbed(
-        'Invites verwijderd',
+        'Invites verwijderd in Amsterdam',
         user,
         `**-${removed}** geldige invite(s) verwijderd.`,
         stats,
@@ -744,7 +761,7 @@ async function handleSetInvitesCommand(interaction) {
   await interaction.reply({
     embeds: [
       buildAdminEmbed(
-        'Invites ingesteld',
+        'Invites ingesteld in Amsterdam',
         user,
         `Geldige invites ingesteld op **${amount}**.`,
         stats,
@@ -757,15 +774,16 @@ async function handleSetInvitesCommand(interaction) {
 
 function buildAdminEmbed(title, user, description, stats, reason) {
   return new EmbedBuilder()
-    .setColor(0xf59e0b)
-    .setAuthor({ name: 'Invite beheer' })
+    .setColor(THEMA.warning)
+    .setAuthor({ name: '🏛️ Amsterdam Invite Beheer', iconURL: BOT_AVATAR_URL })
     .setTitle(title)
     .setDescription(`${user}\n${description}`)
     .addFields(
-      { name: 'Nieuw totaal', value: String(stats.valid), inline: true },
-      { name: 'Handmatig', value: String(stats.manual || 0), inline: true },
-      { name: 'Reden', value: reason, inline: false },
+      { name: '📊 Nieuw totaal', value: String(stats.valid), inline: true },
+      { name: '✏️ Handmatig', value: String(stats.manual || 0), inline: true },
+      { name: '📝 Reden', value: reason, inline: false },
     )
+    .setFooter({ text: 'Gemeente Amsterdam', iconURL: BOT_AVATAR_URL })
     .setTimestamp();
 }
 
@@ -778,7 +796,7 @@ async function handleSetRewardRoleCommand(interaction) {
 
   if (role.id === interaction.guild.id || role.managed) {
     await interaction.reply({
-      content: 'Deze rol kan ik niet automatisch uitdelen.',
+      content: 'Deze rol kan ik niet automatisch uitdelen in Amsterdam.',
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -787,7 +805,7 @@ async function handleSetRewardRoleCommand(interaction) {
   if (botMember && role.comparePositionTo(botMember.roles.highest) >= 0) {
     await interaction.reply({
       content:
-        'Zet mijn bot-rol hoger dan deze reward-rol, anders mag Discord hem niet uitdelen.',
+        'Zet mijn bot-rol hoger dan deze reward-rol in Amsterdam, anders mag Discord hem niet uitdelen.',
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -798,7 +816,7 @@ async function handleSetRewardRoleCommand(interaction) {
   await saveGuildData(interaction.guild.id);
 
   await interaction.reply({
-    content: `Vanaf **${milestone} geldige invite(s)** krijgt iemand automatisch ${role}.`,
+    content: `✅ Vanaf **${milestone} geldige invite(s)** krijgt iemand in Amsterdam automatisch ${role}.`,
     flags: MessageFlags.Ephemeral,
   });
 }
@@ -813,12 +831,14 @@ async function handleRewardRolesCommand(interaction) {
     ? rewardRoles
         .map(([milestone, roleId]) => `**${milestone} invites** -> <@&${roleId}>`)
         .join('\n')
-    : 'Er zijn nog geen reward-rollen ingesteld. Gebruik `/setrewardrole`.';
+    : 'Er zijn nog geen reward-rollen ingesteld in Amsterdam. Gebruik `/setrewardrole`.';
 
   const embed = new EmbedBuilder()
-    .setColor(0x3498db)
-    .setTitle('Invite reward-rollen')
-    .setDescription(description);
+    .setColor(THEMA.info)
+    .setAuthor({ name: '🏛️ Amsterdam Invite reward-rollen', iconURL: BOT_AVATAR_URL })
+    .setTitle('🎁 Reward Rollen Amsterdam')
+    .setDescription(description)
+    .setFooter({ text: 'Gemeente Amsterdam', iconURL: BOT_AVATAR_URL });
 
   await interaction.reply({
     embeds: [embed],
@@ -832,7 +852,7 @@ async function handleSyncRewardsCommand(interaction) {
 
   if (!Object.keys(rewardRoles).length) {
     await interaction.reply({
-      content: 'Er zijn nog geen reward-rollen ingesteld.',
+      content: 'Er zijn nog geen reward-rollen ingesteld in Amsterdam.',
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -857,22 +877,94 @@ async function handleSyncRewardsCommand(interaction) {
   }
 
   await interaction.editReply(
-    `Rewards gesynchroniseerd. Gecontroleerd: **${checked}**, rollen gegeven: **${awarded}**, mislukt: **${failed}**.`,
+    `🏛️ Amsterdam - Rewards gesynchroniseerd. Gecontroleerd: **${checked}**, rollen gegeven: **${awarded}**, mislukt: **${failed}**.`,
   );
-}// ============================================
-// WEBSERVER
+}
+
 // ============================================
-const webApp = express();  // ← Alleen dit, geen require!
+// WEBSERVER (Amsterdam thema)
+// ============================================
+const webApp = express();
 const webPort = process.env.PORT || 3000;
 
 webApp.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Amsterdam Roleplay - Invite Bot</title>
+        <style>
+            body {
+                font-family: 'Arial', sans-serif;
+                background: linear-gradient(135deg, #87CEEB 0%, #ADD8E6 100%);
+                color: #1a1a2e;
+                text-align: center;
+                padding: 50px;
+                margin: 0;
+            }
+            .container {
+                background: white;
+                border-radius: 20px;
+                padding: 40px;
+                max-width: 600px;
+                margin: 0 auto;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            }
+            h1 {
+                color: #1a1a2e;
+                margin-bottom: 10px;
+            }
+            .logo {
+                width: 120px;
+                height: 120px;
+                border-radius: 50%;
+                margin-bottom: 20px;
+                border: 3px solid #87CEEB;
+            }
+            .status {
+                background: #87CEEB;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 10px;
+                display: inline-block;
+                margin: 20px 0;
+            }
+            .footer {
+                margin-top: 30px;
+                font-size: 12px;
+                color: #666;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <img src="${BOT_AVATAR_URL}" alt="Amsterdam Logo" class="logo">
+            <h1>🏛️ Amsterdam Roleplay</h1>
+            <h2>Invite Bot Status</h2>
+            <div class="status">
+                ✅ Bot is online<br>
+                📍 Gemeente Amsterdam
+            </div>
+            <p>Bot is actief en alle systemen werken naar behoren.</p>
+            <p>Gebruik <strong>/invites</strong> in Discord om je invites te bekijken!</p>
+            <div class="footer">
+                Amsterdam Roleplay - Invite Tracker System
+            </div>
+        </div>
+    </body>
+    </html>
+  `);
 });
 
 webApp.get('/health', (req, res) => {
-    res.json({ status: 'online', bot: client.user?.tag, guilds: client.guilds.cache.size });
+  res.json({ 
+    status: 'online', 
+    bot: client.user?.tag, 
+    guilds: client.guilds.cache.size,
+    stad: 'Amsterdam' 
+  });
 });
 
 webApp.listen(webPort, () => {
-    console.log(`✅ Webpagina op poort ${webPort}`);
+  console.log(`✅ Webpagina op poort ${webPort} - Gemeente Amsterdam`);
 });
