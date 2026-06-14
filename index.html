@@ -89,7 +89,6 @@
             padding: 15px 25px;
             min-width: 120px;
             border: 1px solid #dee2e6;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
         .stat-number {
@@ -131,7 +130,6 @@
             font-family: monospace;
             font-size: 0.9em;
             border: 1px solid #dee2e6;
-            color: #1a1a2e;
             transition: all 0.3s ease;
         }
 
@@ -286,10 +284,10 @@
                 <div class="command-item">/invites</div>
                 <div class="command-item">/invites @gebruiker</div>
                 <div class="command-item">/leaderboard</div>
-                <div class="command-item">/inviteactie</div>
-                <div class="command-item">/setrewardrole</div>
+                <div class="command-item">/inviteactie (staff)</div>
+                <div class="command-item">/setrewardrole (admin)</div>
                 <div class="command-item">/rewardroles</div>
-                <div class="command-item">/syncrewards</div>
+                <div class="command-item">/syncrewards (admin)</div>
                 <div class="command-item">/addinvites (admin)</div>
                 <div class="command-item">/removeinvites (admin)</div>
                 <div class="command-item">/setinvites (admin)</div>
@@ -309,7 +307,7 @@
         <div class="footer">
             <p>🏛️ Gemeente Amsterdam - Invite Tracker System</p>
             <p>Alleen geldige invites tellen mee voor beloningen | Fake accounts worden verwijderd</p>
-            <p>© 2024 Amsterdam Roleplay | Alle rechten voorbehouden</p>
+            <p>© 2026 Amsterdam Roleplay | Alle rechten voorbehouden</p>
         </div>
     </div>
 
@@ -322,13 +320,7 @@
                 document.getElementById('ping').innerText = data.ping || '24ms';
                 document.getElementById('uptime').innerText = data.uptime || '3d 12u';
                 document.getElementById('guilds').innerText = data.guilds || '1';
-                
-                // Totaal invites ophalen (optioneel, via extra endpoint)
-                if (data.totalInvites) {
-                    document.getElementById('totalInvites').innerText = data.totalInvites;
-                } else {
-                    document.getElementById('totalInvites').innerText = '1,234';
-                }
+                document.getElementById('totalInvites').innerText = data.totalInvites || '0';
             } catch (error) {
                 console.error('Error fetching status:', error);
                 document.getElementById('ping').innerText = 'N/A';
