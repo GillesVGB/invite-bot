@@ -1,5 +1,4 @@
 const fs = require('fs');
-const http = require('http');
 const path = require('path');
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
@@ -23,6 +22,7 @@ const DATA_FILE =
   process.env.DATA_FILE || path.join(__dirname, 'data', 'invite-data.json');
 const INVITES_CHANNEL_ID =
   process.env.INVITES_CHANNEL_ID || '1508515294925029388';
+const INVITE_LOG_KANAAL_ID = "1508515389074706492";
 const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || 0);
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -205,10 +205,8 @@ const commands = [
     ),
 ].map((command) => command.toJSON());
 
-const dataReady = loadData();
-
 client.once(Events.ClientReady, async () => {
-  await dataReady;
+  await loadData();
   console.log(`🏛️ Bot online! ${client.user.tag}`);
   console.log(`📍 Gemeente Amsterdam - Invite Tracker`);
   
@@ -228,7 +226,7 @@ client.once(Events.ClientReady, async () => {
 });
 
 client.on(Events.GuildCreate, async (guild) => {
-  await dataReady;
+  await loadData();
   await registerCommands(guild);
   await refreshGuildInvites(guild);
 });
@@ -245,8 +243,11 @@ client.on(Events.InviteDelete, (invite) => {
   guildInvites.delete(invite.code);
 });
 
+// ============================================
+// INVITE LOGS - Wordt gestuurd als iemand joint
+// ============================================
 client.on(Events.GuildMemberAdd, async (member) => {
-  await dataReady;
+  await loadData();
 
   const before = inviteCache.get(member.guild.id) || new Map();
   const after = await fetchGuildInvites(member.guild);
@@ -256,15 +257,55 @@ client.on(Events.GuildMemberAdd, async (member) => {
 
   if (!usedInvite || !usedInvite.inviterId) {
     console.log(`[${member.guild.name}] Invite niet gevonden voor ${member.user.tag}.`);
+    
+    const logChannel = await client.channels.fetch(INVITE_LOG_KANAAL_ID).catch(() => null);
+    if (logChannel) {
+      const embed = new EmbedBuilder()
+        .setColor(THEMA.warning)
+        .setTitle("⚠️ Nieuwe member - Invite niet gevonden")
+        .setDescription(`${member.user.tag} is gejoind, maar de gebruikte invite kon niet worden gevonden.`)
+        .addFields(
+          { name: "👤 Nieuwe member", value: `${member.user} (${member.user.tag})`, inline: true },
+          { name: "🆔 User ID", value: member.user.id, inline: true },
+          { name: "📅 Datum", value: new Date().toLocaleString('nl-NL'), inline: false }
+        )
+        .setFooter({ text: "Amsterdam Roleplay - Invite Tracker", iconURL: BOT_AVATAR_URL })
+        .setTimestamp();
+      await logChannel.send({ embeds: [embed] });
+    }
     return;
   }
 
   const result = await recordJoin(member, usedInvite);
-  if (!result.counted || !result.valid) return;
+  
+  const inviterStats = getUserStats(member.guild.id, usedInvite.inviterId);
+  const inviterMember = await member.guild.members.fetch(usedInvite.inviterId).catch(() => null);
+  
+  const logChannel = await client.channels.fetch(INVITE_LOG_KANAAL_ID).catch(() => null);
+  if (logChannel) {
+    const statusEmoji = result.valid ? "✅" : "❌";
+    const statusText = result.valid ? "Geldig" : "Ongeldig (account te jong)";
+    
+    const embed = new EmbedBuilder()
+      .setColor(result.valid ? THEMA.success : THEMA.error)
+      .setTitle(`${statusEmoji} Nieuwe member gejoind!`)
+      .setDescription(`${member.user.tag} is de server gejoind via een invite van ${inviterMember ? inviterMember.user.tag : usedInvite.inviterId}`)
+      .addFields(
+        { name: "👤 Nieuwe member", value: `${member.user} (${member.user.tag})`, inline: true },
+        { name: "🆔 User ID", value: member.user.id, inline: true },
+        { name: "📅 Account leeftijd", value: `${Math.floor((Date.now() - member.user.createdTimestamp) / 86400000)} dagen`, inline: true },
+        { name: "🔗 Invite code", value: usedInvite.code, inline: true },
+        { name: "👥 Uitgenodigd door", value: inviterMember ? `${inviterMember.user} (${inviterMember.user.tag})` : usedInvite.inviterId, inline: true },
+        { name: "📊 Inviter stats", value: `**Geldige invites:** ${inviterStats.valid}\n**Totaal invites:** ${inviterStats.total}\n**Ongeldig:** ${inviterStats.invalid}`, inline: true },
+        { name: "✅ Status", value: statusText, inline: true }
+      )
+      .setFooter({ text: `Amsterdam Roleplay - Invite Tracker | Totaal invites: ${inviterStats.valid}`, iconURL: BOT_AVATAR_URL })
+      .setTimestamp();
+    
+    await logChannel.send({ embeds: [embed] });
+  }
 
-  const inviterMember = await member.guild.members
-    .fetch(usedInvite.inviterId)
-    .catch(() => null);
+  if (!result.counted || !result.valid) return;
 
   if (inviterMember) {
     await applyRewardRoles(inviterMember, result.validInvites);
@@ -273,7 +314,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand() || !interaction.guild) return;
-  await dataReady;
+  await loadData();
 
   if (interaction.commandName === 'invites') {
     await handleInvitesCommand(interaction);
@@ -933,7 +974,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 // ============================================
-// WEBSERVER (MOET HELEMAAL ONDERAAN!)
+// WEBSERVER
 // ============================================
 const webApp = express();
 const webPort = process.env.PORT || 3000;
