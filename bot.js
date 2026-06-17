@@ -49,7 +49,7 @@ const THEMA = {
   bronze: 0xCD7F32
 };
 
-const BOT_AVATAR_URL = "https://cdn.discordapp.com/attachments/1507087328752177214/1515802226700845277/amsterdam_roleplay_logo_transparant.png?ex=6a305455&is=6a2f02d5&hm=f9088df305687b2365e3eb299b558c04e29018714151a0602c0c7bb01d3c2dd1&";
+const BOT_AVATAR_URL = "https://cdn.discordapp.com/attachments/1507087328752177214/1515802226700845277/amsterdam_roleplay_logo_transparant.png?6a305455&is=6a2f02d5&hm=f9088df305687b2365e3eb299b558c04e29018714151a0602c0c7bb01d3c2dd1&";
 
 const supabase =
   SUPABASE_URL && SUPABASE_KEY
