@@ -67,7 +67,7 @@ const client = new Client({
 });
 
 const inviteCache = new Map();
-const rewardMilestones = [3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+const rewardMilestones = [3, 5, 10, 15, 20, 25, 30, 35, 40, 50];
 const db = { guilds: {} };
 
 const commands = [
@@ -600,7 +600,6 @@ async function applyRewardRoles(member, validInviteCount) {
     30: '`Wordt bekeken`',
     35: '`Wordt bekeken`',
     40: '`Wordt bekeken`',
-    45: '`Wordt bekeken`',
     50: '`Wordt bekeken`'
   };
 
@@ -763,12 +762,10 @@ async function handleInviteActieCommand(interaction) {
       { name: '❯ **10 invites**', value: '`/reviewmij Command`', inline: true },
       { name: '❯ **15 invites**', value: '`Buff / Baller (auto)`', inline: true },
       { name: '❯ **20 invites**', value: '`VIP Blackmarket`', inline: true },
-      { name: '\u200b', value: '\u200b', inline: true },
       { name: '❯ **25 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '❯ **30 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '❯ **35 invites**', value: '`Wordt bekekenr`', inline: true },
       { name: '❯ **40 invites**', value: '`Wordt bekeken`', inline: true },
-      { name: '❯ **45 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '❯ **50 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '\u200b', value: '\n', inline: false },
       {
@@ -1168,7 +1165,6 @@ webApp.get('/', (req, res) => {
                     <div class="reward-item"><div class="reward-invites">🎯 30 invites</div><div class="reward-prize">Wordt bekeken</div></div>
                     <div class="reward-item"><div class="reward-invites">🎯 35 invites</div><div class="reward-prize">Wordt bekeken</div></div>
                     <div class="reward-item"><div class="reward-invites">🎯 40 invites</div><div class="reward-prize">Wordt bekeken</div></div>
-                    <div class="reward-item"><div class="reward-invites">🎯 45 invites</div><div class="reward-prize">Wordt bekeken</div></div>
                     <div class="reward-item"><div class="reward-invites">🎯 50 invites</div><div class="reward-prize">Wordt bekeken</div></div>
                 </div>
             </div>
