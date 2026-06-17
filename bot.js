@@ -757,7 +757,7 @@ async function handleInviteActieCommand(interaction) {
       { name: '❯ **10 invites**', value: '`/reviewmij Command`', inline: true },
       { name: '❯ **20 invites**', value: '`VIP Blackmarket`', inline: true },
       { name: '❯ **25 invites**', value: '`Wordt bekeken`', inline: true },
-      { name: '❯ **30 invites**', value: '`Wordt bekekenr`', inline: true },
+      { name: '❯ **30 invites**', value: '`VIP Join Message`', inline: true },
       { name: '❯ **40 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '❯ **45 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '❯ **50 invites**', value: '`Wordt bekeken`', inline: true },
