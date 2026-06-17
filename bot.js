@@ -761,7 +761,7 @@ async function handleInviteActieCommand(interaction) {
       { name: '❯ **40 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '❯ **45 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '❯ **50 invites**', value: '`Wordt bekeken`', inline: true },
-      { name: '\u200b', value: '\n', inline: false },
+  { name: '\u200b', value: '\u200b', inline: true },
       {
         name: '**📋 Belangrijke informatie**',
         value: [
