@@ -67,7 +67,7 @@ const client = new Client({
 });
 
 const inviteCache = new Map();
-const rewardMilestones = [3, 5, 10, 15, 20];
+const rewardMilestones = [3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 const db = { guilds: {} };
 
 const commands = [
@@ -596,6 +596,12 @@ async function applyRewardRoles(member, validInviteCount) {
     10: '`/reviewmij Command`',
     15: '`Buff / Baller (auto)`',
     20: '`VIP Blackmarket`',
+    25: '`Wordt bekeken`',
+    30: '`Wordt bekeken`',
+    35: '`Wordt bekeken`',
+    40: '`Wordt bekeken`',
+    45: '`Wordt bekeken`',
+    50: '`Wordt bekeken`'
   };
 
   for (const [milestoneText, roleId] of Object.entries(rewardRoles)) {
@@ -612,7 +618,7 @@ async function applyRewardRoles(member, validInviteCount) {
     try {
       await member.roles.add(role, `Invite reward voor ${milestone} invites in Amsterdam`);
       awarded.push(role.name);
-      const prize = milestonePrizes[milestone] || 'Exclusieve beloning';
+      const prize = milestonePrizes[milestone] || '🎁 Exclusieve beloning';
       await sendMilestoneDM(member, milestone, prize, roleId, role.name);
     } catch (error) {
       failed.push(`${role.name}: ${error.message}`);
@@ -711,7 +717,7 @@ async function handleInvitesCommand(interaction) {
   const nextMilestone = rewardMilestones.find((milestone) => stats.valid < milestone);
   const nextText = nextMilestone
     ? `${nextMilestone - stats.valid} geldige invite(s) tot **${nextMilestone} invites** in Amsterdam.`
-    : 'Alle standaard mijlpalen zijn behaald in Amsterdam.';
+    : '🎉 Alle mijlpalen zijn behaald in Amsterdam! Je bent een echte inviter!';
 
   const embed = new EmbedBuilder()
     .setColor(THEMA.primary)
@@ -758,6 +764,12 @@ async function handleInviteActieCommand(interaction) {
       { name: '❯ **15 invites**', value: '`Buff / Baller (auto)`', inline: true },
       { name: '❯ **20 invites**', value: '`VIP Blackmarket`', inline: true },
       { name: '\u200b', value: '\u200b', inline: true },
+      { name: '❯ **25 invites**', value: '`Wordt bekeken`', inline: true },
+      { name: '❯ **30 invites**', value: '`Wordt bekeken`', inline: true },
+      { name: '❯ **35 invites**', value: '`Wordt bekekenr`', inline: true },
+      { name: '❯ **40 invites**', value: '`Wordt bekeken`', inline: true },
+      { name: '❯ **45 invites**', value: '`Wordt bekeken`', inline: true },
+      { name: '❯ **50 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '\u200b', value: '\n', inline: false },
       {
         name: '**📋 Belangrijke informatie**',
@@ -767,6 +779,7 @@ async function handleInviteActieCommand(interaction) {
           '• Alle invites worden **gecontroleerd** door het Amsterdam staffteam.',
           '• Bij **misbruik** vervallen alle behaalde beloningen.',
           '• Mijlpaal bereikt? Spreek een **stafflid** aan voor verificatie in Amsterdam.',
+          '• **Nieuwe mijlpalen!** Tot 50 invites mogelijk!',
         ].join('\n'),
         inline: false,
       },
@@ -1002,7 +1015,7 @@ webApp.get('/', (req, res) => {
                 backdrop-filter: blur(10px);
                 border-radius: 30px;
                 padding: 40px;
-                max-width: 700px;
+                max-width: 800px;
                 margin: 0 auto;
                 box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
                 border: 1px solid rgba(255, 255, 255, 0.5);
@@ -1151,6 +1164,12 @@ webApp.get('/', (req, res) => {
                     <div class="reward-item"><div class="reward-invites">🎯 10 invites</div><div class="reward-prize">/reviewmij Command</div></div>
                     <div class="reward-item"><div class="reward-invites">🎯 15 invites</div><div class="reward-prize">Buff / Baller (auto)</div></div>
                     <div class="reward-item"><div class="reward-invites">🎯 20 invites</div><div class="reward-prize">VIP Blackmarket</div></div>
+                    <div class="reward-item"><div class="reward-invites">🎯 25 invites</div><div class="reward-prize">Wordt bekeken</div></div>
+                    <div class="reward-item"><div class="reward-invites">🎯 30 invites</div><div class="reward-prize">Wordt bekeken</div></div>
+                    <div class="reward-item"><div class="reward-invites">🎯 35 invites</div><div class="reward-prize">Wordt bekeken</div></div>
+                    <div class="reward-item"><div class="reward-invites">🎯 40 invites</div><div class="reward-prize">Wordt bekeken</div></div>
+                    <div class="reward-item"><div class="reward-invites">🎯 45 invites</div><div class="reward-prize">Wordt bekeken</div></div>
+                    <div class="reward-item"><div class="reward-invites">🎯 50 invites</div><div class="reward-prize">Wordt bekeken</div></div>
                 </div>
             </div>
             <div class="commands">
