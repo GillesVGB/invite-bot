@@ -753,7 +753,7 @@ async function handleInviteActieCommand(interaction) {
     ].join('\n'))
     .setThumbnail(BOT_AVATAR_URL)
     .addFields(
-      { name: '❯ **5 invites**', value: 'Wordt bekeken``', inline: true },
+      { name: '❯ **5 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '❯ **10 invites**', value: '`/reviewmij Command`', inline: true },
       { name: '❯ **20 invites**', value: '`VIP Blackmarket`', inline: true },
       { name: '❯ **25 invites**', value: '`Wordt bekeken`', inline: true },
