@@ -67,7 +67,7 @@ const client = new Client({
 });
 
 const inviteCache = new Map();
-const rewardMilestones = [5, 10, 20, 25, 30, 45, 45, 50];
+const rewardMilestones = [5, 10, 20, 25, 30, 40  , 45, 50];
 const db = { guilds: {} };
 
 const commands = [
