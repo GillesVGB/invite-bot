@@ -318,22 +318,48 @@ client.on(Events.GuildMemberAdd, async (member) => {
 client.on(Events.InteractionCreate, async (interaction) => {
   // Button interacties afhandelen
   if (interaction.isButton()) {
-    if (interaction.customId.startsWith('leaderboard_page_')) {
+    // Check of het een leaderboard button is (begint met lb_)
+    if (interaction.customId.startsWith('lb_')) {
       await interaction.deferUpdate();
       
-      const pageMatch = interaction.customId.match(/leaderboard_page_(\d+)/);
-      if (!pageMatch) return;
+      // Haal de action uit de customId (first, prev, next, last)
+      const parts = interaction.customId.split('_');
+      const action = parts[1]; // first, prev, next, last
       
-      const page = parseInt(pageMatch[1]);
-      const leaderboard = getLeaderboard(interaction.guild.id);
-      const totalPages = Math.ceil(leaderboard.length / 10);
-      const validPage = Math.max(1, Math.min(page, totalPages));
+      // Haal de huidige pagina uit de embed footer
+      const footerText = interaction.message.embeds[0]?.footer?.text || '';
+      const pageMatch = footerText.match(/Pagina (\d+)\/(\d+)/);
+      if (!pageMatch) {
+        return interaction.editReply({ content: 'Kon pagina niet bepalen.' });
+      }
       
+      const currentPage = parseInt(pageMatch[1]);
+      const totalPages = parseInt(pageMatch[2]);
+      
+      let newPage = currentPage;
+      switch (action) {
+        case 'first':
+          newPage = 1;
+          break;
+        case 'prev':
+          newPage = Math.max(1, currentPage - 1);
+          break;
+        case 'next':
+          newPage = Math.min(totalPages, currentPage + 1);
+          break;
+        case 'last':
+          newPage = totalPages;
+          break;
+        default:
+          return;
+      }
+      
+      // Maak een fake interaction voor de command handler
       const fakeInteraction = {
         ...interaction,
         options: {
           getInteger: (name) => {
-            if (name === 'page') return validPage;
+            if (name === 'page') return newPage;
             return null;
           }
         },
@@ -726,25 +752,28 @@ async function handleLeaderboardCommand(interaction) {
     .setTimestamp()
     .setThumbnail(BOT_AVATAR_URL);
 
+  // Genereer unieke custom IDs met een timestamp
+  const uniqueId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+  
   const row = new ActionRowBuilder()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId(`leaderboard_page_1`)
+        .setCustomId(`lb_first_${uniqueId}`)
         .setLabel('⏮️ Eerste')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(currentPage === 1),
       new ButtonBuilder()
-        .setCustomId(`leaderboard_page_${currentPage - 1}`)
+        .setCustomId(`lb_prev_${uniqueId}`)
         .setLabel('◀️ Vorige')
         .setStyle(ButtonStyle.Primary)
         .setDisabled(currentPage === 1),
       new ButtonBuilder()
-        .setCustomId(`leaderboard_page_${currentPage + 1}`)
+        .setCustomId(`lb_next_${uniqueId}`)
         .setLabel('Volgende ▶️')
         .setStyle(ButtonStyle.Primary)
         .setDisabled(currentPage === totalPages),
       new ButtonBuilder()
-        .setCustomId(`leaderboard_page_${totalPages}`)
+        .setCustomId(`lb_last_${uniqueId}`)
         .setLabel('Laatste ⏭️')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(currentPage === totalPages)
