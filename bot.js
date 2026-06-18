@@ -67,7 +67,7 @@ const client = new Client({
 });
 
 const inviteCache = new Map();
-const rewardMilestones = [5, 10, 20, 25, 30, 40  , 45, 50];
+const rewardMilestones = [5, 10, 20, 25, 30, 40, 45, 50];
 const db = { guilds: {} };
 
 const commands = [
@@ -312,7 +312,42 @@ client.on(Events.GuildMemberAdd, async (member) => {
   }
 });
 
+// ============================================
+// INTERACTIE HANDLER
+// ============================================
 client.on(Events.InteractionCreate, async (interaction) => {
+  // Button interacties afhandelen
+  if (interaction.isButton()) {
+    if (interaction.customId.startsWith('leaderboard_page_')) {
+      await interaction.deferUpdate();
+      
+      const pageMatch = interaction.customId.match(/leaderboard_page_(\d+)/);
+      if (!pageMatch) return;
+      
+      const page = parseInt(pageMatch[1]);
+      const leaderboard = getLeaderboard(interaction.guild.id);
+      const totalPages = Math.ceil(leaderboard.length / 10);
+      const validPage = Math.max(1, Math.min(page, totalPages));
+      
+      const fakeInteraction = {
+        ...interaction,
+        options: {
+          getInteger: (name) => {
+            if (name === 'page') return validPage;
+            return null;
+          }
+        },
+        reply: interaction.reply,
+        editReply: interaction.editReply
+      };
+      
+      await handleLeaderboardCommand(fakeInteraction);
+      return;
+    }
+    return;
+  }
+
+  // Chat input commands afhandelen
   if (!interaction.isChatInputCommand() || !interaction.guild) return;
   await loadData();
 
@@ -626,7 +661,16 @@ async function applyRewardRoles(member, validInviteCount) {
 // LEADERBOARD COMMAND
 // ============================================
 async function handleLeaderboardCommand(interaction) {
-  const page = interaction.options.getInteger('page') || 1;
+  let page = 1;
+  try {
+    if (interaction.options && typeof interaction.options.getInteger === 'function') {
+      page = interaction.options.getInteger('page') || 1;
+    }
+  } catch (error) {
+    console.error('Error getting page:', error);
+    page = 1;
+  }
+
   const itemsPerPage = 10;
   const leaderboard = getLeaderboard(interaction.guild.id);
   
@@ -638,7 +682,13 @@ async function handleLeaderboardCommand(interaction) {
       .setDescription('Er zijn nog geen geldige invites geregistreerd in Amsterdam!')
       .setFooter({ text: 'Wees de eerste om vrienden uit te nodigen!', iconURL: BOT_AVATAR_URL })
       .setTimestamp();
-    return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    
+    if (interaction.replied || interaction.deferred) {
+      await interaction.editReply({ embeds: [embed] });
+    } else {
+      await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    }
+    return;
   }
 
   const totalPages = Math.ceil(leaderboard.length / itemsPerPage);
@@ -679,28 +729,32 @@ async function handleLeaderboardCommand(interaction) {
   const row = new ActionRowBuilder()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('leaderboard_first')
+        .setCustomId(`leaderboard_page_1`)
         .setLabel('⏮️ Eerste')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(currentPage === 1),
       new ButtonBuilder()
-        .setCustomId('leaderboard_prev')
+        .setCustomId(`leaderboard_page_${currentPage - 1}`)
         .setLabel('◀️ Vorige')
         .setStyle(ButtonStyle.Primary)
         .setDisabled(currentPage === 1),
       new ButtonBuilder()
-        .setCustomId('leaderboard_next')
+        .setCustomId(`leaderboard_page_${currentPage + 1}`)
         .setLabel('Volgende ▶️')
         .setStyle(ButtonStyle.Primary)
         .setDisabled(currentPage === totalPages),
       new ButtonBuilder()
-        .setCustomId('leaderboard_last')
+        .setCustomId(`leaderboard_page_${totalPages}`)
         .setLabel('Laatste ⏭️')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(currentPage === totalPages)
     );
 
-  await interaction.reply({ embeds: [embed], components: [row] });
+  if (interaction.replied || interaction.deferred) {
+    await interaction.editReply({ embeds: [embed], components: [row] });
+  } else {
+    await interaction.reply({ embeds: [embed], components: [row] });
+  }
 }
 
 // ============================================
@@ -761,7 +815,7 @@ async function handleInviteActieCommand(interaction) {
       { name: '❯ **40 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '❯ **45 invites**', value: '`Wordt bekeken`', inline: true },
       { name: '❯ **50 invites**', value: '`Wordt bekeken`', inline: true },
-  { name: '\u200b', value: '\u200b', inline: true },
+      { name: '\u200b', value: '\u200b', inline: true },
       {
         name: '**📋 Belangrijke informatie**',
         value: [
@@ -922,60 +976,6 @@ async function handleSetInvitesCommand(interaction) {
     .setTimestamp();
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
-
-// ============================================
-// BUTTON HANDLER VOOR LEADERBOARD
-// ============================================
-client.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isButton()) return;
-  
-  if (interaction.customId === 'leaderboard_first') {
-    await interaction.deferUpdate();
-    const leaderboard = getLeaderboard(interaction.guild.id);
-    const totalPages = Math.ceil(leaderboard.length / 10);
-    const fakeInteraction = {
-      ...interaction,
-      options: { getInteger: () => 1 },
-      reply: interaction.reply,
-      editReply: interaction.editReply
-    };
-    await handleLeaderboardCommand(fakeInteraction);
-  }
-  else if (interaction.customId === 'leaderboard_prev') {
-    await interaction.deferUpdate();
-    const currentPage = parseInt(interaction.message.embeds[0]?.footer?.text?.match(/Pagina (\d+)/)?.[1] || 1);
-    const fakeInteraction = {
-      ...interaction,
-      options: { getInteger: () => currentPage - 1 },
-      reply: interaction.reply,
-      editReply: interaction.editReply
-    };
-    await handleLeaderboardCommand(fakeInteraction);
-  }
-  else if (interaction.customId === 'leaderboard_next') {
-    await interaction.deferUpdate();
-    const currentPage = parseInt(interaction.message.embeds[0]?.footer?.text?.match(/Pagina (\d+)/)?.[1] || 1);
-    const fakeInteraction = {
-      ...interaction,
-      options: { getInteger: () => currentPage + 1 },
-      reply: interaction.reply,
-      editReply: interaction.editReply
-    };
-    await handleLeaderboardCommand(fakeInteraction);
-  }
-  else if (interaction.customId === 'leaderboard_last') {
-    await interaction.deferUpdate();
-    const leaderboard = getLeaderboard(interaction.guild.id);
-    const totalPages = Math.ceil(leaderboard.length / 10);
-    const fakeInteraction = {
-      ...interaction,
-      options: { getInteger: () => totalPages },
-      reply: interaction.reply,
-      editReply: interaction.editReply
-    };
-    await handleLeaderboardCommand(fakeInteraction);
-  }
-});
 
 // ============================================
 // WEBSERVER
