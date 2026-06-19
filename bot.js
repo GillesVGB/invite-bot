@@ -49,7 +49,7 @@ const THEMA = {
   bronze: 0xCD7F32
 };
 
-const BOT_AVATAR_URL = "https://imgur.com/d9Qt8AB";
+const BOT_AVATAR_URL = "https://i.imgur.com/9hSqGWd.png";
 
 const supabase =
   SUPABASE_URL && SUPABASE_KEY
@@ -209,14 +209,6 @@ client.once(Events.ClientReady, async () => {
   await loadData();
   console.log(`🏛️ Bot online! ${client.user.tag}`);
   console.log(`📍 Gemeente Amsterdam - Invite Tracker`);
-  
-  try {
-    await client.user.setAvatar(BOT_AVATAR_URL);
-    console.log(`✅ Bot avatar geüpdatet naar Amsterdam logo`);
-  } catch (error) {
-    console.log(`Kon avatar niet updaten: ${error.message}`);
-  }
-  
   client.user.setActivity(`Amsterdam | /invites`, { type: 3 });
 
   for (const guild of client.guilds.cache.values()) {
@@ -316,6 +308,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
 // INTERACTIE HANDLER
 // ============================================
 client.on(Events.InteractionCreate, async (interaction) => {
+  try {
   // Button interacties afhandelen
   if (interaction.isButton()) {
     // Check of het een leaderboard button is (begint met lb_)
@@ -354,20 +347,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return;
       }
       
-      // Maak een fake interaction voor de command handler
-      const fakeInteraction = {
-        ...interaction,
-        options: {
-          getInteger: (name) => {
-            if (name === 'page') return newPage;
-            return null;
-          }
-        },
-        reply: interaction.reply,
-        editReply: interaction.editReply
-      };
-      
-      await handleLeaderboardCommand(fakeInteraction);
+      const payload = await buildLeaderboardPayload(interaction.guild, newPage);
+      await interaction.editReply(payload);
       return;
     }
     return;
@@ -375,6 +356,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   // Chat input commands afhandelen
   if (!interaction.isChatInputCommand() || !interaction.guild) return;
+  if (interaction.commandName === 'leaderboard' && !interaction.deferred && !interaction.replied) {
+    await interaction.deferReply();
+  }
   await loadData();
 
   if (interaction.commandName === 'invites') {
@@ -412,6 +396,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (interaction.commandName === 'setinvites') {
     await handleSetInvitesCommand(interaction);
   }
+  } catch (error) {
+    await handleInteractionError(interaction, error);
+  }
 });
 
 client.login(TOKEN);
@@ -419,6 +406,34 @@ client.login(TOKEN);
 process.on('unhandledRejection', (error) => {
   console.error('Unhandled promise rejection:', error);
 });
+
+async function handleInteractionError(interaction, error) {
+  if (error?.code === 10062) {
+    console.warn('Discord interaction verlopen voordat de bot kon antwoorden.');
+    return;
+  }
+
+  console.error('Fout bij verwerken van interaction:', error);
+
+  if (!interaction || typeof interaction.isRepliable !== 'function' || !interaction.isRepliable()) {
+    return;
+  }
+
+  const payload = {
+    content: 'Er ging iets mis bij het uitvoeren van dit commando.',
+    flags: MessageFlags.Ephemeral,
+  };
+
+  try {
+    if (interaction.deferred || interaction.replied) {
+      await interaction.followUp(payload);
+    } else {
+      await interaction.reply(payload);
+    }
+  } catch (replyError) {
+    console.error('Kon geen foutmelding naar Discord sturen:', replyError);
+  }
+}
 
 // ============================================
 // FUNCTIES
@@ -686,19 +701,9 @@ async function applyRewardRoles(member, validInviteCount) {
 // ============================================
 // LEADERBOARD COMMAND
 // ============================================
-async function handleLeaderboardCommand(interaction) {
-  let page = 1;
-  try {
-    if (interaction.options && typeof interaction.options.getInteger === 'function') {
-      page = interaction.options.getInteger('page') || 1;
-    }
-  } catch (error) {
-    console.error('Error getting page:', error);
-    page = 1;
-  }
-
+async function buildLeaderboardPayload(guild, page = 1) {
   const itemsPerPage = 10;
-  const leaderboard = getLeaderboard(interaction.guild.id);
+  const leaderboard = getLeaderboard(guild.id);
   
   if (leaderboard.length === 0) {
     const embed = new EmbedBuilder()
@@ -709,12 +714,7 @@ async function handleLeaderboardCommand(interaction) {
       .setFooter({ text: 'Wees de eerste om vrienden uit te nodigen!', iconURL: BOT_AVATAR_URL })
       .setTimestamp();
     
-    if (interaction.replied || interaction.deferred) {
-      await interaction.editReply({ embeds: [embed] });
-    } else {
-      await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-    }
-    return;
+    return { embeds: [embed], components: [] };
   }
 
   const totalPages = Math.ceil(leaderboard.length / itemsPerPage);
@@ -734,8 +734,8 @@ async function handleLeaderboardCommand(interaction) {
     else if (rank === 3) medal = '🥉';
     else medal = `#${rank}`;
     
-    try {
-      const user = await interaction.guild.members.fetch(item.userId).catch(() => null);
+  try {
+      const user = await guild.members.fetch(item.userId).catch(() => null);
       const username = user ? user.user.username : `Onbekende Gebruiker (${item.userId.slice(0, 8)}...)`;
       description += `**${medal}** ${username}\n└ **${item.valid}** geldige invites | **${item.total}** totaal\n\n`;
     } catch {
@@ -779,10 +779,26 @@ async function handleLeaderboardCommand(interaction) {
         .setDisabled(currentPage === totalPages)
     );
 
+  return { embeds: [embed], components: [row] };
+}
+
+async function handleLeaderboardCommand(interaction) {
+  let page = 1;
+  try {
+    if (interaction.options && typeof interaction.options.getInteger === 'function') {
+      page = interaction.options.getInteger('page') || 1;
+    }
+  } catch (error) {
+    console.error('Error getting page:', error);
+    page = 1;
+  }
+
+  const payload = await buildLeaderboardPayload(interaction.guild, page);
+
   if (interaction.replied || interaction.deferred) {
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    await interaction.editReply(payload);
   } else {
-    await interaction.reply({ embeds: [embed], components: [row] });
+    await interaction.reply(payload);
   }
 }
 
